@@ -1,0 +1,169 @@
+import { useEffect, useState } from 'react';
+import { db } from '../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { Student, SchoolSettings } from '../types';
+import { formatDate } from '../lib/utils';
+import { QRCodeSVG } from 'qrcode.react';
+
+interface SKLPreviewProps {
+  student: Student;
+  isAdminView?: boolean;
+}
+
+export default function SKLPreview({ student, isAdminView = false }: SKLPreviewProps) {
+  const [settings, setSettings] = useState<SchoolSettings | null>(null);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      const docSnap = await getDoc(doc(db, 'settings', 'general'));
+      if (docSnap.exists()) {
+        setSettings(docSnap.data() as SchoolSettings);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  if (!settings) return null;
+
+  // Verification URL for the QR Code
+  const verificationUrl = `${window.location.origin}/verify?id=${student.id}&nisn=${student.nisn}`;
+
+  return (
+    <div className="bg-white shadow-2xl p-[1.5cm] w-[210mm] min-h-[297mm] mx-auto text-black font-['Times_New_Roman',_serif] text-[11pt] leading-relaxed print:shadow-none print:m-0 print:w-full" id="skl-printable">
+      {/* Header - Full Image */}
+      <div className="mb-6 w-full">
+         {settings.logoUrl ? (
+           <img src={settings.logoUrl} alt="Kop Surat" className="w-full object-contain" referrerPolicy="no-referrer" />
+         ) : (
+           <div className="w-full h-32 flex items-center justify-center border-2 border-dashed border-slate-200 bg-slate-50 text-slate-400">
+             Belum ada Kop Surat diunggah di Pengaturan
+           </div>
+         )}
+      </div>
+
+      {/* Title */}
+      <div className="text-center mb-8">
+        <h2 className="text-[14pt] font-bold underline uppercase">Surat Keterangan Lulus</h2>
+        <p className="font-bold">No. {settings.letterNumberTemplate}</p>
+      </div>
+
+      {/* Opening */}
+      <div className="mb-6">
+        <p>Kepala {settings.schoolName} Tahun Pelajaran {settings.academicYear}, dengan berdasarkan:</p>
+        <ol className="list-decimal ml-8 mt-2 space-y-1">
+          <li>Penyelesaian seluruh program pembelajaran pada kurikulum merdeka;</li>
+          <li>Kriteria kelulusan dari satuan pendidikan sesuai dengan peraturan perundang-undangan;</li>
+          <li>Rapat Pleno Dewan Guru tentang Penetapan Kelulusan pada tanggal {formatDate(settings.plenaryDate || settings.graduationDate)};</li>
+        </ol>
+      </div>
+
+      <p className="mb-4">Menerangkan bahwa:</p>
+
+      {/* Student Profile Info */}
+      <div className="ml-8 space-y-1 mb-6">
+        <div className="grid grid-cols-[200px_20px_1fr]">
+          <span>Nama</span><span>:</span><span className="font-bold uppercase">{student.name}</span>
+        </div>
+        <div className="grid grid-cols-[200px_20px_1fr]">
+          <span>Tempat dan Tanggal Lahir</span><span>:</span><span>{student.birthPlace}, {formatDate(student.birthDate)}</span>
+        </div>
+        <div className="grid grid-cols-[200px_20px_1fr]">
+          <span>Nama Orang Tua</span><span>:</span><span>{student.parentName}</span>
+        </div>
+        <div className="grid grid-cols-[200px_20px_1fr]">
+          <span>Nomor Induk Siswa</span><span>:</span><span>{student.nis}</span>
+        </div>
+        <div className="grid grid-cols-[200px_20px_1fr]">
+          <span>Nomor Induk Siswa Nasional</span><span>:</span><span>{student.nisn}</span>
+        </div>
+        <div className="grid grid-cols-[200px_20px_1fr]">
+          <span>Kelas</span><span>:</span><span className="tabular-nums font-bold uppercase">{student.className || '-'}</span>
+        </div>
+        <div className="grid grid-cols-[200px_20px_1fr]">
+          <span>Peminatan/Mapel Pilihan</span><span>:</span>
+          <div className="space-y-0.5">
+            {student.subjects && (Array.isArray(student.subjects) ? student.subjects : Object.keys(student.subjects)).map((name, idx) => (
+              <p key={idx}>{idx + 1}. {name}</p>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Declaration */}
+      <div className="mb-8">
+        <div className="grid grid-cols-[200px_20px_1fr] items-center">
+          <span className="font-bold">Dinyatakan</span>
+          <span className="font-bold">:</span>
+          <span className="font-bold text-[13pt] tracking-[0.2em]">
+            <span className={student.status === 'TIDAK LULUS' ? 'line-through decoration-2' : ''}>LULUS</span>
+            <span> / </span>
+            <span className={student.status === 'LULUS' ? 'line-through decoration-2' : ''}>TIDAK LULUS</span>
+          </span>
+        </div>
+      </div>
+
+      <div className="mb-8 font-bold">
+        <p>dengan Rata-rata Nilai*: {student.averageScore.toLocaleString('id-ID', { minimumFractionDigits: 2 })}</p>
+      </div>
+
+      <div className="mb-8 italic text-sm">
+        <p>Surat Keterangan Lulus (SKL) ini diterbitkan pada tanggal {formatDate(settings.graduationDate)} dan bersifat sementara hingga murid menerima ijazah dan transkrip nilai.</p>
+      </div>
+
+      {/* Signature Section */}
+      <div className="flex justify-end mt-12 px-8">
+        <div className="w-[280px] text-center flex flex-col items-center">
+          <p>{settings.regency}, {formatDate(settings.graduationDate)}</p>
+          <p>Kepala Sekolah,</p>
+          
+          <div className="h-24 flex items-center justify-center my-1">
+            {!isAdminView ? (
+              <div className="flex flex-col items-center gap-1 border border-slate-200 p-1 rounded-sm">
+                <QRCodeSVG value={verificationUrl} size={80} />
+                <p className="text-[6pt] text-slate-400">Digital Signature</p>
+              </div>
+            ) : (
+              <div className="h-full"></div> /* Empty space for manual signature */
+            )}
+          </div>
+
+          <p className="font-bold underline text-[12pt]">{settings.headmasterName}</p>
+          <p>NPA. {settings.headmasterNip}</p>
+        </div>
+      </div>
+
+      {/* Footer Info */}
+      <div className="mt-20 text-[9pt]">
+        <p>Keterangan:</p>
+        <p>*) rata-rata nilai murid yang sama dengan nilai yang akan ditulis dalam Transkrip Nilai Ijazah.</p>
+      </div>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          body * { visibility: hidden; }
+          #skl-printable, #skl-printable * { visibility: visible; }
+          #skl-printable {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 210mm;
+            height: 297mm;
+            padding: 2cm;
+            box-shadow: none;
+            font-family: "Times New Roman", Times, serif;
+          }
+        }
+        @page {
+          size: A4;
+          margin: 0;
+        }
+        #skl-printable {
+          font-family: "Times New Roman", Times, serif;
+        }
+        .tabular-nums {
+          font-variant-numeric: tabular-nums;
+        }
+      `}} />
+    </div>
+  );
+}

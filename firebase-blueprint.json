@@ -1,0 +1,55 @@
+{
+  "entities": {
+    "Student": {
+      "title": "Student",
+      "description": "Data siswa untuk kelulusan",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Nama lengkap siswa" },
+        "birthPlace": { "type": "string", "description": "Tempat lahir" },
+        "birthDate": { "type": "string", "description": "Tanggal lahir" },
+        "parentName": { "type": "string", "description": "Nama orang tua/wali" },
+        "nis": { "type": "string", "description": "Nomor Induk Siswa" },
+        "nisn": { "type": "string", "description": "Nomor Induk Siswa Nasional" },
+        "className": { "type": "string", "description": "Kelas (XII-1, XII-2, XII-3)" },
+        "subjects": { 
+          "type": "array", 
+          "items": { "type": "string" },
+          "description": "Daftar nama mata pelajaran" 
+        },
+        "averageScore": { "type": "number", "description": "Rata-rata nilai akhir" },
+        "status": { "type": "string", "enum": ["LULUS", "TIDAK LULUS"], "description": "Status kelulusan" },
+        "sklNumber": { "type": "string", "description": "Nomor Surat Keterangan Lulus" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "nis", "nisn", "status"]
+    },
+    "SchoolSettings": {
+      "title": "School Settings",
+      "description": "Konfigurasi data sekolah",
+      "type": "object",
+      "properties": {
+        "schoolName": { "type": "string" },
+        "address": { "type": "string" },
+        "district": { "type": "string" },
+        "regency": { "type": "string" },
+        "headmasterName": { "type": "string" },
+        "headmasterNip": { "type": "string" },
+        "academicYear": { "type": "string" },
+        "graduationDate": { "type": "string" },
+        "plenaryDate": { "type": "string", "description": "Tanggal Rapat Pleno Dewan Guru" },
+        "letterNumberTemplate": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "students/{studentId}": {
+      "schema": "Student",
+      "description": "Koleksi data siswa"
+    },
+    "settings/general": {
+      "schema": "SchoolSettings",
+      "description": "Pengaturan umum sekolah"
+    }
+  }
+}

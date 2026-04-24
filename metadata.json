@@ -1,0 +1,6 @@
+{
+  "name": "SIMAPNA Kelulusan",
+  "description": "Sistem Informasi Kelulusan Siswa dengan fitur Input Manual, Import Excel, dan Cetak SKL Otomatis format A4.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

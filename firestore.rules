@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper Functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'senjayakuswara6@gmail.com' && request.auth.token.email_verified == true
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Student Validation
+    function isValidStudent(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+             data.nis is string && data.nis.size() > 0 &&
+             data.nisn is string && data.nisn.size() > 0 &&
+             data.className is string &&
+             data.status in ['LULUS', 'TIDAK LULUS'];
+    }
+
+    // Settings Validation
+    function isValidSettings(data) {
+      return data.schoolName is string && data.schoolName.size() > 0;
+    }
+
+    // Match Rules
+    match /students/{studentId} {
+      allow read: if true; // Public check enabled
+      allow create: if isAdmin() && isValidId(studentId) && isValidStudent(incoming());
+      allow update: if isAdmin() && isValidStudent(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'birthPlace', 'birthDate', 'parentName', 'nis', 'nisn', 'className', 'subjects', 'averageScore', 'status', 'sklNumber', 'updatedAt'])
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /settings/general {
+      allow read: if true; // Public need to see school name and logo
+      allow write: if isAdmin() && isValidSettings(incoming());
+    }
+  }
+}
