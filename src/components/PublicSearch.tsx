@@ -15,9 +15,23 @@ export default function PublicSearch() {
 
   useEffect(() => {
     const fetchSettings = async () => {
-      const docSnap = await getDoc(doc(db, 'settings', 'general'));
-      if (docSnap.exists()) {
-        setSettings(docSnap.data() as SchoolSettings);
+      try {
+        const [generalSnap, logoSnap, uiLogoSnap] = await Promise.all([
+          getDoc(doc(db, 'settings', 'general')),
+          getDoc(doc(db, 'settings', 'logo_header')),
+          getDoc(doc(db, 'settings', 'logo_ui'))
+        ]);
+
+        if (generalSnap.exists()) {
+          const data = generalSnap.data() as SchoolSettings;
+          setSettings({
+            ...data,
+            logoUrl: logoSnap.exists() ? logoSnap.data().url : '',
+            secondaryLogoUrl: uiLogoSnap.exists() ? uiLogoSnap.data().url : '',
+          });
+        }
+      } catch (error) {
+        console.error(error);
       }
     };
     fetchSettings();
@@ -95,9 +109,19 @@ export default function PublicSearch() {
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    performSearch(nisn);
+  const handlePrint = () => {
+    if (!student) return;
+    const originalTitle = document.title;
+    const appName = settings?.secondarySchoolName || 'SIMAPNA';
+    const fileName = `${student.name.replace(/\s+/g, '_').toUpperCase()}_${student.nisn}_${appName.replace(/\s+/g, '_').toUpperCase()}`;
+    
+    document.title = fileName;
+    window.print();
+    
+    // Restore title after a short delay to ensure print dialog picks it up
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 1000);
   };
 
   if (celebrating) {
@@ -219,7 +243,7 @@ export default function PublicSearch() {
            animate={{ opacity: 1, scale: 1 }}
            transition={{ delay: 0.1 }}
         >
-          <form onSubmit={handleSearch} className="relative group">
+          <form onSubmit={(e) => { e.preventDefault(); performSearch(nisn); }} className="relative group">
             <div className="relative overflow-hidden rounded-[2rem] shadow-2xl shadow-blue-100 ring-8 ring-white">
               <input 
                 type="text" 
@@ -310,7 +334,7 @@ export default function PublicSearch() {
                   </div>
                   
                   <button 
-                    onClick={() => window.print()}
+                    onClick={handlePrint}
                     className="flex lg:flex items-center justify-center gap-3 bg-slate-900 hover:bg-slate-800 text-white px-8 py-5 rounded-2xl font-bold shadow-xl shadow-slate-200 transition-all active:scale-95 group shrink-0"
                   >
                     <Printer className="w-5 h-5 group-hover:scale-110 transition-transform" />

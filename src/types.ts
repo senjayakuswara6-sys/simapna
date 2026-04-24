@@ -27,4 +27,5 @@ export interface SchoolSettings {
   graduationDate: string;
   plenaryDate: string;
   letterNumberTemplate: string;
+  signatureStampUrl?: string;
 }

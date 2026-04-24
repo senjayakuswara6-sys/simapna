@@ -3,7 +3,6 @@ import { db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { Student, SchoolSettings } from '../types';
 import { formatDate } from '../lib/utils';
-import { QRCodeSVG } from 'qrcode.react';
 
 interface SKLPreviewProps {
   student: Student;
@@ -15,18 +14,29 @@ export default function SKLPreview({ student, isAdminView = false }: SKLPreviewP
 
   useEffect(() => {
     const fetchSettings = async () => {
-      const docSnap = await getDoc(doc(db, 'settings', 'general'));
-      if (docSnap.exists()) {
-        setSettings(docSnap.data() as SchoolSettings);
+      try {
+        const [generalSnap, logoSnap, signatureSnap] = await Promise.all([
+          getDoc(doc(db, 'settings', 'general')),
+          getDoc(doc(db, 'settings', 'logo_header')),
+          getDoc(doc(db, 'settings', 'signature_stamp'))
+        ]);
+
+        if (generalSnap.exists()) {
+          const data = generalSnap.data() as SchoolSettings;
+          setSettings({
+            ...data,
+            logoUrl: logoSnap.exists() ? logoSnap.data().url : '',
+            signatureStampUrl: signatureSnap.exists() ? signatureSnap.data().url : '',
+          });
+        }
+      } catch (error) {
+        console.error(error);
       }
     };
     fetchSettings();
   }, []);
 
   if (!settings) return null;
-
-  // Verification URL for the QR Code
-  const verificationUrl = `${window.location.origin}/verify?id=${student.id}&nisn=${student.nisn}`;
 
   return (
     <div className="bg-white shadow-2xl p-[1.5cm] w-[210mm] min-h-[297mm] mx-auto text-black font-['Times_New_Roman',_serif] text-[11pt] leading-relaxed print:shadow-none print:m-0 print:w-full" id="skl-printable">
@@ -112,23 +122,23 @@ export default function SKLPreview({ student, isAdminView = false }: SKLPreviewP
 
       {/* Signature Section */}
       <div className="flex justify-end mt-4 px-8">
-        <div className="w-[280px] text-center flex flex-col items-center">
+        <div className="w-[300px] text-center flex flex-col items-center relative">
           <p>{settings.regency}, {formatDate(settings.graduationDate)}</p>
-          <p>Kepala Sekolah,</p>
+          <p className="mb-16">Kepala Sekolah,</p>
           
-          <div className="h-16 flex items-center justify-center my-0.5">
-            {!isAdminView ? (
-              <div className="flex flex-col items-center gap-0.5 border border-slate-100 p-0.5 rounded-sm">
-                <QRCodeSVG value={verificationUrl} size={60} />
-                <p className="text-[5pt] text-slate-400">Digital Signature</p>
-              </div>
-            ) : (
-              <div className="h-full"></div>
-            )}
-          </div>
+          {settings.signatureStampUrl && (
+            <div className="absolute top-[35px] left-[10px] w-[180px] h-[130px] pointer-events-none z-10">
+              <img 
+                src={settings.signatureStampUrl} 
+                alt="Stamp" 
+                className="w-full h-full object-contain opacity-90 transition-opacity" 
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          )}
 
-          <p className="font-bold underline text-[11pt]">{settings.headmasterName}</p>
-          <p className="text-[10pt]">NPA. {settings.headmasterNip}</p>
+          <p className="font-bold underline text-[11pt] relative z-20">{settings.headmasterName}</p>
+          <p className="text-[10pt] relative z-20">NPA. {settings.headmasterNip}</p>
         </div>
       </div>
 

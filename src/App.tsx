@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { auth, signInWithGoogle } from './lib/firebase';
+import { auth, signInWithGoogle, db } from './lib/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 import { GraduationCap, LogIn, LogOut, Users, Settings as SettingsIcon, FileText, LayoutDashboard, Plus, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import StudentTable from './components/StudentTable';
@@ -8,12 +9,39 @@ import SettingsForm from './components/SettingsForm';
 import Dashboard from './components/Dashboard';
 import PublicSearch from './components/PublicSearch';
 
+interface SchoolSettings {
+  schoolName: string;
+  secondaryLogoUrl: string;
+}
+
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'students' | 'settings'>('dashboard');
   const [isPublicView, setIsPublicView] = useState(true);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [settings, setSettings] = useState<SchoolSettings | null>(null);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const [generalSnap, uiLogoSnap] = await Promise.all([
+          getDoc(doc(db, 'settings', 'general')),
+          getDoc(doc(db, 'settings', 'logo_ui'))
+        ]);
+        
+        if (generalSnap.exists()) {
+          setSettings({
+            schoolName: generalSnap.data().schoolName || 'SIMAPNA',
+            secondaryLogoUrl: uiLogoSnap.exists() ? uiLogoSnap.data().url : ''
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      }
+    };
+    fetchSettings();
+  }, [user]);
 
   useEffect(() => {
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -78,9 +106,15 @@ export default function App() {
             Kembali ke Cek NISN
           </button>
           <div className="bg-blue-100 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6 mt-4">
-            <GraduationCap className="w-10 h-10 text-blue-600" />
+            {settings?.secondaryLogoUrl ? (
+              <img src={settings.secondaryLogoUrl} alt="Logo" className="w-12 h-12 object-contain" />
+            ) : (
+              <GraduationCap className="w-10 h-10 text-blue-600" />
+            )}
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">SIMAPNA</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2 truncate px-4">
+            {settings?.schoolName || 'SIMAPNA'}
+          </h1>
           <p className="text-gray-500 mb-8">Sistem Informasi Kelulusan Siswa</p>
           <button
             onClick={signInWithGoogle}
@@ -101,11 +135,17 @@ export default function App() {
     <div className="fixed inset-0 bg-slate-50 flex overflow-hidden">
       {/* Desktop Sidebar - Strictly hidden on mobile */}
       <aside className="w-72 bg-white border-r border-slate-200 hidden md:flex flex-col shrink-0">
-        <div className="p-6 flex items-center gap-3 border-b border-slate-100">
-          <div className="bg-blue-600 p-2 rounded-lg shadow-lg shadow-blue-100">
-            <GraduationCap className="w-6 h-6 text-white" />
+        <div className="p-6 flex items-center gap-3 border-b border-slate-100 min-h-[88px]">
+          <div className="bg-blue-600 p-1.5 rounded-lg shadow-lg shadow-blue-100 shrink-0">
+            {settings?.secondaryLogoUrl ? (
+              <img src={settings.secondaryLogoUrl} alt="Logo" className="w-6 h-6 object-contain brightness-0 invert" />
+            ) : (
+              <GraduationCap className="w-6 h-6 text-white" />
+            )}
           </div>
-          <span className="font-black text-xl text-slate-800 tracking-tight">SIMAPNA</span>
+          <span className="font-black text-lg text-slate-800 tracking-tight truncate">
+            {settings?.schoolName || 'SIMAPNA'}
+          </span>
         </div>
         
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
@@ -160,13 +200,19 @@ export default function App() {
        <main className="flex-1 flex flex-col min-w-0 bg-slate-50 relative h-full">
          {/* Mobile Header (Fixed) */}
          <header className="md:hidden sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-slate-200 p-4 flex items-center justify-between shadow-sm h-16 shrink-0">
-           <div className="flex items-center gap-2">
-             <div className="bg-blue-600 p-1.5 rounded-lg shadow-md shadow-blue-100">
-               <GraduationCap className="w-5 h-5 text-white" />
+           <div className="flex items-center gap-2 overflow-hidden">
+             <div className="bg-blue-600 p-1.5 rounded-lg shadow-md shadow-blue-100 shrink-0">
+                {settings?.secondaryLogoUrl ? (
+                  <img src={settings.secondaryLogoUrl} alt="Logo" className="w-5 h-5 object-contain brightness-0 invert" />
+                ) : (
+                  <GraduationCap className="w-5 h-5 text-white" />
+                )}
              </div>
-             <span className="font-extrabold text-lg text-slate-800 tracking-tight">SIMAPNA</span>
+             <span className="font-extrabold text-lg text-slate-800 tracking-tight truncate">
+               {settings?.schoolName || 'SIMAPNA'}
+             </span>
            </div>
-           <div className="flex items-center gap-2">
+           <div className="flex items-center gap-2 shrink-0">
              {deferredPrompt && (
                <button 
                  onClick={handleInstallClick}

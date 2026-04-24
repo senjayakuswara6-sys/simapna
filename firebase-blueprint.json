@@ -40,6 +40,14 @@
         "plenaryDate": { "type": "string", "description": "Tanggal Rapat Pleno Dewan Guru" },
         "letterNumberTemplate": { "type": "string" }
       }
+    },
+    "Asset": {
+      "title": "Asset",
+      "description": "Generic storage for base64 assets",
+      "type": "object",
+      "properties": {
+        "url": { "type": "string" }
+      }
     }
   },
   "firestore": {
@@ -50,6 +58,18 @@
     "settings/general": {
       "schema": "SchoolSettings",
       "description": "Pengaturan umum sekolah"
+    },
+    "settings/logo_header": {
+      "schema": "Asset",
+      "description": "Full-size Kop Surat image"
+    },
+    "settings/logo_ui": {
+      "schema": "Asset",
+      "description": "Small UI logo"
+    },
+    "settings/signature_stamp": {
+      "schema": "Asset",
+      "description": "Signature and Stamp image"
     }
   }
 }

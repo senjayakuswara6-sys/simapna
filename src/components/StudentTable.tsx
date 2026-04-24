@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db, handleFirestoreError } from '../lib/firebase';
-import { collection, query, onSnapshot, doc, deleteDoc, addDoc, updateDoc } from 'firebase/firestore';
+import { collection, query, onSnapshot, doc, deleteDoc, addDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { Student } from '../types';
 import { Search, Plus, Upload, Trash2, Printer, Edit, X, Download, FileSpreadsheet } from 'lucide-react';
 import ExcelImport from './ExcelImport';
@@ -17,6 +17,31 @@ export default function StudentTable() {
   const [showForm, setShowForm] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [previewingStudent, setPreviewingStudent] = useState<Student | null>(null);
+  const [settings, setSettings] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      const docSnap = await getDoc(doc(db, 'settings', 'general'));
+      if (docSnap.exists()) {
+        setSettings(docSnap.data());
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  const handlePrint = () => {
+    if (!previewingStudent) return;
+    const originalTitle = document.title;
+    const appName = settings?.secondarySchoolName || 'SIMAPNA';
+    const fileName = `${previewingStudent.name.replace(/\s+/g, '_').toUpperCase()}_${previewingStudent.nisn}_${appName.replace(/\s+/g, '_').toUpperCase()}`;
+    
+    document.title = fileName;
+    window.print();
+    
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 1000);
+  };
 
   useEffect(() => {
     const q = query(collection(db, 'students'));
@@ -230,7 +255,7 @@ export default function StudentTable() {
                 <h3 className="font-bold text-lg text-slate-800">Preview & Cetak SKL</h3>
                 <div className="flex items-center gap-2">
                   <button 
-                    onClick={() => window.print()}
+                    onClick={handlePrint}
                     className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm"
                   >
                     <Printer className="w-4 h-4" />

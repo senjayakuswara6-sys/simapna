@@ -16,7 +16,8 @@ export default function SettingsForm() {
     academicYear: '2024/2025',
     graduationDate: new Date().toISOString().split('T')[0],
     plenaryDate: new Date().toISOString().split('T')[0],
-    letterNumberTemplate: '243/SMA-PGRI/1.6/M/2025'
+    letterNumberTemplate: '243/SMA-PGRI/1.6/M/2025',
+    signatureStampUrl: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -25,10 +26,22 @@ export default function SettingsForm() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const docRef = doc(db, 'settings', 'general');
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setSettings(docSnap.data() as SchoolSettings);
+        const [generalSnap, logoSnap, uiLogoSnap, signatureSnap] = await Promise.all([
+          getDoc(doc(db, 'settings', 'general')),
+          getDoc(doc(db, 'settings', 'logo_header')),
+          getDoc(doc(db, 'settings', 'logo_ui')),
+          getDoc(doc(db, 'settings', 'signature_stamp'))
+        ]);
+
+        if (generalSnap.exists()) {
+          const data = generalSnap.data();
+          setSettings({
+            ...settings,
+            ...data,
+            logoUrl: logoSnap.exists() ? logoSnap.data().url : '',
+            secondaryLogoUrl: uiLogoSnap.exists() ? uiLogoSnap.data().url : '',
+            signatureStampUrl: signatureSnap.exists() ? signatureSnap.data().url : '',
+          } as SchoolSettings);
         }
       } catch (error) {
         console.error(error);
@@ -44,7 +57,15 @@ export default function SettingsForm() {
     setSaving(true);
     setMessage(null);
     try {
-      await setDoc(doc(db, 'settings', 'general'), settings);
+      const { logoUrl, secondaryLogoUrl, signatureStampUrl, ...generalData } = settings;
+      
+      await Promise.all([
+        setDoc(doc(db, 'settings', 'general'), generalData),
+        logoUrl ? setDoc(doc(db, 'settings', 'logo_header'), { url: logoUrl }) : Promise.resolve(),
+        secondaryLogoUrl ? setDoc(doc(db, 'settings', 'logo_ui'), { url: secondaryLogoUrl }) : Promise.resolve(),
+        signatureStampUrl ? setDoc(doc(db, 'settings', 'signature_stamp'), { url: signatureStampUrl }) : Promise.resolve(),
+      ]);
+
       setMessage({ text: 'Pengaturan berhasil disimpan!', type: 'success' });
     } catch (error) {
       handleFirestoreError(error, 'write', 'settings/general');
@@ -54,34 +75,101 @@ export default function SettingsForm() {
     }
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (base64Str: string, maxWidth = 1600, maxHeight = 1600, quality = 0.9, format = 'image/png'): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = base64Str;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width *= maxHeight / height;
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, width, height);
+        }
+        resolve(canvas.toDataURL(format, quality));
+      };
+    });
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 1024 * 1024) { // 1MB limit for safety in Firestore
-      setMessage({ text: 'Ukuran logo terlalu besar (maks 1MB).', type: 'error' });
+    // If file is already reasonable size (< 600KB), don't compress to keep 100% quality
+    if (file.size < 600 * 1024) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSettings({ ...settings, logoUrl: reader.result as string });
+      };
+      reader.readAsDataURL(file);
       return;
     }
 
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setSettings({ ...settings, logoUrl: reader.result as string });
+    reader.onloadend = async () => {
+      // Use high resolution for header logo to avoid blur (Kop Surat)
+      const compressed = await compressImage(reader.result as string, 2400, 800, 0.95, 'image/png');
+      setSettings({ ...settings, logoUrl: compressed });
     };
     reader.readAsDataURL(file);
   };
 
-  const handleSecondaryLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSecondaryLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 512 * 1024) { // 512KB for UI logo
-      setMessage({ text: 'Ukuran logo terlalu besar (maks 512KB).', type: 'error' });
+    if (file.size < 300 * 1024) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSettings({ ...settings, secondaryLogoUrl: reader.result as string });
+      };
+      reader.readAsDataURL(file);
       return;
     }
 
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setSettings({ ...settings, secondaryLogoUrl: reader.result as string });
+    reader.onloadend = async () => {
+      const compressed = await compressImage(reader.result as string, 600, 600, 0.9, 'image/png');
+      setSettings({ ...settings, secondaryLogoUrl: compressed });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleStampUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size < 500 * 1024) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSettings({ ...settings, signatureStampUrl: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const compressed = await compressImage(reader.result as string, 1200, 1200, 0.9, 'image/png');
+      setSettings({ ...settings, signatureStampUrl: compressed });
     };
     reader.readAsDataURL(file);
   };
@@ -137,6 +225,37 @@ export default function SettingsForm() {
                   className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                 />
                 <p className="text-xs text-slate-400">Gunakan logo sekolah saja (tanpa teks alamat) untuk tampilan di HP/Dashboard (Maks 512KB).</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-span-1 md:col-span-2">
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Upload Cap & TTD Kepala Sekolah (JPG/PNG Transparan)</label>
+            <div className="flex items-center gap-6 p-4 border-2 border-dashed border-blue-200 rounded-xl bg-blue-50/30 text-left">
+              <div className="w-48 h-32 bg-white border border-slate-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0 shadow-sm relative">
+                {settings.signatureStampUrl ? (
+                  <img src={settings.signatureStampUrl} alt="Stamp Preview" className="w-full h-full object-contain" />
+                ) : (
+                  <div className="text-xs text-slate-400 text-center p-2 italic">Belum ada file diupload</div>
+                )}
+              </div>
+              <div className="flex-1 space-y-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleStampUpload}
+                  className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+                <p className="text-xs text-slate-400 font-medium">Gunakan foto cap dan tanda tangan yang sudah di-crop transparan (format .png) agar menindih nama dengan rapi.</p>
+                {settings.signatureStampUrl && (
+                  <button 
+                    type="button"
+                    onClick={() => setSettings({...settings, signatureStampUrl: ''})}
+                    className="text-xs text-red-500 font-semibold hover:underline"
+                  >
+                    Hapus Cap
+                  </button>
+                )}
               </div>
             </div>
           </div>
