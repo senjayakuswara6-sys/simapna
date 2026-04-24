@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
 import { db, handleFirestoreError } from '../lib/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, setDoc, doc } from 'firebase/firestore';
 import { Download, AlertCircle, CheckCircle2, UploadCloud } from 'lucide-react';
 import { Student } from '../types';
 
@@ -71,7 +71,8 @@ export default function ExcelImport({ onClose }: { onClose: () => void }) {
           };
 
           if (studentData.name && studentData.nisn) {
-            await addDoc(collection(db, 'students'), studentData);
+            // Using NISN as the document ID to prevent duplicates (Upsert logic)
+            await setDoc(doc(db, 'students', studentData.nisn), studentData);
             count++;
           }
         }

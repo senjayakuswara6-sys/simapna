@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { db, handleFirestoreError } from '../lib/firebase';
-import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { collection, setDoc, updateDoc, doc } from 'firebase/firestore';
 import { Student } from '../types';
 import { Plus, Trash2, Save } from 'lucide-react';
 
@@ -53,7 +53,8 @@ export default function StudentForm({ initialData, onClose }: StudentFormProps) 
       if (initialData?.id) {
         await updateDoc(doc(db, 'students', initialData.id), data as any);
       } else {
-        await addDoc(collection(db, 'students'), data);
+        // Use NISN as the document ID for new students to prevent duplicates
+        await setDoc(doc(db, 'students', data.nisn), data);
       }
       onClose();
     } catch (error) {
