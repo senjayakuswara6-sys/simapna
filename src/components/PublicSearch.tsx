@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
-import { collection, query, where, getDocs, limit, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { Student, SchoolSettings } from '../types';
 import { Search, GraduationCap, Printer, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -15,38 +15,35 @@ export default function PublicSearch() {
   const [loadingSettings, setLoadingSettings] = useState(true);
 
   useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const [generalSnap, logoSnap, uiLogoSnap] = await Promise.all([
-          getDoc(doc(db, 'settings', 'general')),
-          getDoc(doc(db, 'settings', 'logo_header')),
-          getDoc(doc(db, 'settings', 'logo_ui'))
-        ]);
-
-        if (generalSnap.exists()) {
-          const data = generalSnap.data() as SchoolSettings;
-          setSettings({
-            ...data,
-            logoUrl: logoSnap.exists() ? logoSnap.data().url : '',
-            secondaryLogoUrl: uiLogoSnap.exists() ? uiLogoSnap.data().url : '',
-          });
-
-          // Preliminary lock check
-          if (data.isCountdownActive && data.countdownTargetDate) {
-            const target = new Date(data.countdownTargetDate).getTime();
+    // Real-time settings listener
+    const unsubGeneral = onSnapshot(doc(db, 'settings', 'general'), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data() as SchoolSettings;
+        setSettings(prev => {
+          const prevSettings = prev || {} as SchoolSettings;
+          const newSettings = { ...prevSettings, ...data };
+          
+          if (newSettings.isCountdownActive && newSettings.countdownTargetDate) {
+            const target = new Date(newSettings.countdownTargetDate).getTime();
             const now = new Date().getTime();
-            if (target > now) {
-              setIsLocked(true);
-            }
+            setIsLocked(target > now);
+          } else {
+            setIsLocked(false);
           }
-        }
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoadingSettings(false);
+          
+          return newSettings;
+        });
       }
-    };
-    fetchSettings();
+      setLoadingSettings(false);
+    });
+
+    const unsubLogo = onSnapshot(doc(db, 'settings', 'logo_header'), (snap) => {
+      if (snap.exists()) setSettings(prev => ({ ...(prev || {}), logoUrl: snap.data().url } as SchoolSettings));
+    });
+
+    const unsubUILogo = onSnapshot(doc(db, 'settings', 'logo_ui'), (snap) => {
+      if (snap.exists()) setSettings(prev => ({ ...(prev || {}), secondaryLogoUrl: snap.data().url } as SchoolSettings));
+    });
 
     // Check for verification URL or query param
     const path = window.location.pathname;
@@ -57,6 +54,12 @@ export default function PublicSearch() {
         performSearch(urlNisn);
       }
     }
+
+    return () => {
+      unsubGeneral();
+      unsubLogo();
+      unsubUILogo();
+    };
   }, []);
 
   const [celebrating, setCelebrating] = useState(false);
@@ -485,4 +488,3 @@ export default function PublicSearch() {
     </div>
   );
 }
-
