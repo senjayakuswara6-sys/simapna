@@ -19,7 +19,11 @@ export default function SettingsForm() {
     letterNumberTemplate: '243/SMA-PGRI/1.6/M/2025',
     signatureStampUrl: '',
     isCountdownActive: false,
-    countdownTargetDate: new Date().toISOString().slice(0, 16)
+    countdownTargetDate: (() => {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      return now.toISOString().slice(0, 16);
+    })()
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
