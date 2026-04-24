@@ -111,15 +111,15 @@ export default function SKLPreview({ student, isAdminView = false }: SKLPreviewP
       </div>
 
       {/* Signature Section */}
-      <div className="flex justify-end mt-12 px-8">
+      <div className="flex justify-end mt-8 px-8">
         <div className="w-[280px] text-center flex flex-col items-center">
           <p>{settings.regency}, {formatDate(settings.graduationDate)}</p>
           <p>Kepala Sekolah,</p>
           
-          <div className="h-24 flex items-center justify-center my-1">
+          <div className="h-20 flex items-center justify-center my-1">
             {!isAdminView ? (
               <div className="flex flex-col items-center gap-1 border border-slate-200 p-1 rounded-sm">
-                <QRCodeSVG value={verificationUrl} size={80} />
+                <QRCodeSVG value={verificationUrl} size={70} />
                 <p className="text-[6pt] text-slate-400">Digital Signature</p>
               </div>
             ) : (
@@ -133,7 +133,7 @@ export default function SKLPreview({ student, isAdminView = false }: SKLPreviewP
       </div>
 
       {/* Footer Info */}
-      <div className="mt-20 text-[9pt]">
+      <div className="mt-8 text-[9pt]">
         <p>Keterangan:</p>
         <p>*) rata-rata nilai murid yang sama dengan nilai yang akan ditulis dalam Transkrip Nilai Ijazah.</p>
       </div>
@@ -143,12 +143,12 @@ export default function SKLPreview({ student, isAdminView = false }: SKLPreviewP
           body * { visibility: hidden; }
           #skl-printable, #skl-printable * { visibility: visible; }
           #skl-printable {
-            position: fixed;
+            position: absolute;
             left: 0;
             top: 0;
             width: 210mm;
-            height: 297mm;
-            padding: 2cm;
+            min-height: 297mm;
+            padding: 1.5cm;
             box-shadow: none;
             font-family: "Times New Roman", Times, serif;
           }
@@ -159,6 +159,7 @@ export default function SKLPreview({ student, isAdminView = false }: SKLPreviewP
         }
         #skl-printable {
           font-family: "Times New Roman", Times, serif;
+          box-sizing: border-box;
         }
         .tabular-nums {
           font-variant-numeric: tabular-nums;

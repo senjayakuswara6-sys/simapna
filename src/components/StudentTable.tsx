@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { db, handleFirestoreError } from '../lib/firebase';
 import { collection, query, onSnapshot, doc, deleteDoc, addDoc, updateDoc } from 'firebase/firestore';
 import { Student } from '../types';
-import { Search, Plus, Upload, Trash2, Printer, Edit, X, Download } from 'lucide-react';
+import { Search, Plus, Upload, Trash2, Printer, Edit, X, Download, FileSpreadsheet } from 'lucide-react';
 import ExcelImport from './ExcelImport';
 import StudentForm from './StudentForm';
 import SKLPreview from './SKLPreview';
 import { motion, AnimatePresence } from 'motion/react';
+import * as XLSX from 'xlsx';
 
 export default function StudentTable() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -27,11 +28,14 @@ export default function StudentTable() {
     return () => unsubscribe();
   }, []);
 
-  const filteredStudents = students.filter(s => 
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    s.nisn.includes(searchTerm) ||
-    s.nis.includes(searchTerm)
-  );
+  const filteredStudents = students.filter(s => {
+    const term = searchTerm.toLowerCase();
+    return (
+      (s.name || '').toLowerCase().includes(term) || 
+      (s.nisn || '').includes(searchTerm) ||
+      (s.nis || '').includes(searchTerm)
+    );
+  });
 
   const handleDelete = async (id: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
@@ -43,6 +47,26 @@ export default function StudentTable() {
     }
   };
 
+  const handleExport = () => {
+    const exportData = students.map(s => ({
+      'Nama': s.name,
+      'NIS': s.nis,
+      'NISN': s.nisn,
+      'Tempat Lahir': s.birthPlace,
+      'Tanggal Lahir': s.birthDate,
+      'Nama Orang Tua': s.parentName,
+      'Kelas': s.className || '',
+      'Status': s.status,
+      'Rata-rata Nilai': s.averageScore,
+      'Mata Pelajaran/Peminatan': Array.isArray(s.subjects) ? s.subjects.join(', ') : Object.keys(s.subjects).join(', ')
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Data Siswa");
+    XLSX.writeFile(wb, `Data_Siswa_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -51,6 +75,13 @@ export default function StudentTable() {
           <p className="text-slate-500">Total {students.length} siswa terdaftar.</p>
         </div>
         <div className="flex items-center gap-2">
+          <button 
+            onClick={handleExport}
+            className="flex items-center gap-2 bg-slate-600 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm shadow-sm"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            Eksport Excel
+          </button>
           <button 
             onClick={() => setShowImport(true)}
             className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm shadow-sm"

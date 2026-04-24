@@ -21,41 +21,165 @@ export default function PublicSearch() {
       }
     };
     fetchSettings();
+
+    // Check for verification URL or query param
+    const path = window.location.pathname;
+    if (path.startsWith('/verify/')) {
+      const urlNisn = path.split('/verify/')[1];
+      if (urlNisn) {
+        setNisn(urlNisn);
+        performSearch(urlNisn);
+      }
+    }
   }, []);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanNisn = nisn.trim();
+  const [celebrating, setCelebrating] = useState(false);
+  const [countdown, setCountdown] = useState(15);
+  const [showResult, setShowResult] = useState(false);
+
+  useEffect(() => {
+    let timer: any;
+    if (celebrating && countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown(prev => prev - 1);
+      }, 1000);
+    } else if (celebrating && countdown === 0) {
+      setCelebrating(false);
+      setShowResult(true);
+    }
+    return () => clearInterval(timer);
+  }, [celebrating, countdown]);
+
+  const performSearch = async (targetNisn: string) => {
+    const cleanNisn = targetNisn.trim();
     if (!cleanNisn) return;
 
     setSearching(true);
     setError(null);
     setStudent(null);
+    setShowResult(false);
+    setCelebrating(false);
 
     try {
-      const q = query(
-        collection(db, 'students'), 
-        where('nisn', '==', cleanNisn), 
-        limit(1)
-      );
-      const snapshot = await getDocs(q);
+      // 1. Try fetching directly by ID (which is the NISN)
+      const directDoc = await getDoc(doc(db, 'students', cleanNisn));
       
-      if (snapshot.empty) {
-        setError('Data siswa tidak ditemukan. Pastikan NISN yang dimasukkan benar.');
+      if (directDoc.exists()) {
+        const data = { id: directDoc.id, ...directDoc.data() } as Student;
+        setStudent(data);
+        setCelebrating(true);
+        setCountdown(10); // Reduced delay for direct verification
       } else {
-        setStudent({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Student);
+        // 2. Fallback to query (for legacy auto-generated IDs)
+        const q = query(
+          collection(db, 'students'), 
+          where('nisn', '==', cleanNisn), 
+          limit(1)
+        );
+        const snapshot = await getDocs(q);
+        
+        if (snapshot.empty) {
+          setError('Data siswa tidak ditemukan. Pastikan NISN yang dimasukkan benar.');
+        } else {
+          const data = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Student;
+          setStudent(data);
+          setCelebrating(true);
+          setCountdown(15); 
+        }
       }
     } catch (err: any) {
       console.error(err);
-      if (err.message?.includes('index')) {
-        setError('Database memerlukan indeks. Silakan hubungi admin atau tunggu sejenak.');
-      } else {
-        setError('Gagal mencari data. Pastikan koneksi internet stabil.');
-      }
+      setError('Gagal mencari data. Pastikan koneksi internet stabil.');
     } finally {
       setSearching(false);
     }
   };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    performSearch(nisn);
+  };
+
+  if (celebrating) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-slate-900 flex flex-col items-center justify-center p-6 text-center overflow-hidden">
+        {/* Background Video/Animation */}
+        <div className="absolute inset-0 opacity-40">
+          <video 
+            autoPlay 
+            muted 
+            loop 
+            playsInline
+            className="w-full h-full object-cover"
+          >
+            <source src="https://assets.mixkit.co/videos/preview/mixkit-fireworks-in-the-night-sky-2-large.mp4" type="video/mp4" />
+          </video>
+        </div>
+        
+        {/* Confetti Animation Layer */}
+        <div className="absolute inset-0 pointer-events-none">
+          {[...Array(20)].map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ y: -100, x: Math.random() * 100 + '%', rotate: 0 }}
+              animate={{ 
+                y: '120vh', 
+                rotate: 360,
+                x: (Math.random() * 100 - 10) + '%'
+              }}
+              transition={{ 
+                duration: 5 + Math.random() * 5, 
+                repeat: Infinity,
+                ease: "linear",
+                delay: Math.random() * 5
+              }}
+              className="absolute text-4xl"
+            >
+              🎓
+            </motion.div>
+          ))}
+        </div>
+
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="relative z-10 space-y-8 max-w-lg"
+        >
+          <div className="bg-white/10 backdrop-blur-xl p-12 rounded-[3rem] border border-white/20 shadow-2xl">
+            <h2 className="text-4xl md:text-5xl font-black text-white mb-4 tracking-tight">
+              MOMEN BERSEJARAH...
+            </h2>
+            <p className="text-blue-200 text-lg font-medium mb-12">
+              Satu langkah lagi menuju masa depan gemilang {student?.name}
+            </p>
+
+            <div className="space-y-4">
+              <div className="h-4 bg-white/10 rounded-full overflow-hidden p-1 ring-1 ring-white/20">
+                <motion.div 
+                  initial={{ width: "0%" }}
+                  animate={{ width: "100%" }}
+                  transition={{ duration: 15, ease: "linear" }}
+                  className="h-full bg-gradient-to-r from-blue-400 to-emerald-400 rounded-full"
+                />
+              </div>
+              <p className="text-white/60 font-black text-2xl tabular-nums">
+                {countdown}s
+              </p>
+            </div>
+            
+            <div className="mt-12">
+              <button 
+                onClick={() => { setCelebrating(false); setShowResult(true); }}
+                className="text-white/30 hover:text-white transition-colors text-sm font-bold uppercase tracking-widest"
+              >
+                Lewati Animasi
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center relative overflow-x-hidden">
@@ -141,7 +265,7 @@ export default function PublicSearch() {
             </motion.div>
           )}
 
-          {student && (
+          {showResult && student && (
             <motion.div 
               key="result"
               initial={{ opacity: 0, y: 30 }}

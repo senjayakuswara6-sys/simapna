@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { db, handleFirestoreError } from '../lib/firebase';
-import { collection, setDoc, updateDoc, doc } from 'firebase/firestore';
+import { collection, setDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { Student } from '../types';
 import { Plus, Trash2, Save } from 'lucide-react';
 
@@ -51,7 +51,13 @@ export default function StudentForm({ initialData, onClose }: StudentFormProps) 
 
     try {
       if (initialData?.id) {
-        await updateDoc(doc(db, 'students', initialData.id), data as any);
+        // If NISN changed and we were using NISN as ID, we need to delete the old one
+        if (initialData.nisn !== data.nisn && initialData.id === initialData.nisn) {
+          await setDoc(doc(db, 'students', data.nisn), data);
+          await deleteDoc(doc(db, 'students', initialData.id));
+        } else {
+          await updateDoc(doc(db, 'students', initialData.id), data as any);
+        }
       } else {
         // Use NISN as the document ID for new students to prevent duplicates
         await setDoc(doc(db, 'students', data.nisn), data);
