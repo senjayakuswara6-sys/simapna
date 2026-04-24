@@ -17,7 +17,9 @@ export default function SettingsForm() {
     graduationDate: new Date().toISOString().split('T')[0],
     plenaryDate: new Date().toISOString().split('T')[0],
     letterNumberTemplate: '243/SMA-PGRI/1.6/M/2025',
-    signatureStampUrl: ''
+    signatureStampUrl: '',
+    isCountdownActive: false,
+    countdownTargetDate: new Date().toISOString().slice(0, 16)
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -371,6 +373,47 @@ export default function SettingsForm() {
               onChange={e => setSettings({ ...settings, letterNumberTemplate: e.target.value })}
               placeholder="Contoh: 243/SMA-PGRI/1.6/M/2025"
             />
+          </div>
+
+          <div className="col-span-1 md:col-span-2 pt-4 border-t border-slate-100">
+            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </span>
+              Pengaturan Countdown (Waktu Mundur)
+            </h3>
+            
+            <div className="bg-orange-50/50 rounded-xl p-6 space-y-6 border border-orange-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-semibold text-slate-700 block">Status Countdown</label>
+                  <p className="text-xs text-slate-500">Aktifkan untuk menunda akses pencarian sampai waktu yang ditentukan.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSettings({ ...settings, isCountdownActive: !settings.isCountdownActive })}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${settings.isCountdownActive ? 'bg-blue-600' : 'bg-slate-300'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.isCountdownActive ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
+
+              {settings.isCountdownActive && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-slate-700">Waktu Target Pengumuman</label>
+                  <input
+                    type="datetime-local"
+                    required={settings.isCountdownActive}
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                    value={settings.countdownTargetDate || ''}
+                    onChange={e => setSettings({ ...settings, countdownTargetDate: e.target.value })}
+                  />
+                  <p className="text-xs text-orange-600">Siswa tidak akan bisa mengecek NISN sebelum waktu ini tiba.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

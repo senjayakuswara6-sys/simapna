@@ -50,6 +50,38 @@ export default function PublicSearch() {
   const [celebrating, setCelebrating] = useState(false);
   const [countdown, setCountdown] = useState(15);
   const [showResult, setShowResult] = useState(false);
+  
+  // Real-time Countdown State
+  const [timeLeft, setTimeLeft] = useState<{ days: number, hours: number, minutes: number, seconds: number } | null>(null);
+  const [isLocked, setIsLocked] = useState(false);
+
+  useEffect(() => {
+    if (!settings?.isCountdownActive || !settings?.countdownTargetDate) {
+      setIsLocked(false);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      const target = new Date(settings.countdownTargetDate!).getTime();
+      const now = new Date().getTime();
+      const difference = target - now;
+
+      if (difference <= 0) {
+        setIsLocked(false);
+        setTimeLeft(null);
+        clearInterval(timer);
+      } else {
+        setIsLocked(true);
+        const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+        setTimeLeft({ days, hours, minutes, seconds });
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [settings]);
 
   useEffect(() => {
     let timer: any;
@@ -237,41 +269,87 @@ export default function PublicSearch() {
           </div>
         </motion.div>
 
-        {/* Search Box */}
-        <motion.div
-           initial={{ opacity: 0, scale: 0.95 }}
-           animate={{ opacity: 1, scale: 1 }}
-           transition={{ delay: 0.1 }}
-        >
-          <form onSubmit={(e) => { e.preventDefault(); performSearch(nisn); }} className="relative group">
-            <div className="relative overflow-hidden rounded-[2rem] shadow-2xl shadow-blue-100 ring-8 ring-white">
-              <input 
-                type="text" 
-                placeholder="Masukkan NISN..." 
-                className="w-full pl-7 pr-36 py-6 bg-white border-none outline-none text-xl font-bold placeholder:text-slate-300 text-slate-800"
-                value={nisn}
-                onChange={e => setNisn(e.target.value)}
-              />
-              <button 
-                type="submit"
-                disabled={searching}
-                className="absolute right-2 top-2 bottom-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 rounded-[1.5rem] flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50"
-              >
-                {searching ? (
-                   <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white"></div>
-                ) : (
-                  <>
-                    <Search className="w-5 h-5" />
-                    <span className="hidden sm:inline">Cari</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-          <p className="mt-4 text-center text-slate-400 text-sm font-medium">
-            Nomor Induk Siswa Nasional (10 Digit)
-          </p>
-        </motion.div>
+        {/* Search Box or Countdown */}
+        <AnimatePresence mode="wait">
+          {isLocked && timeLeft ? (
+            <motion.div
+              key="countdown"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-2xl shadow-blue-100 border border-white text-center space-y-6"
+            >
+              <div className="bg-orange-50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="w-8 h-8 text-orange-500" />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-2xl font-black text-slate-800 tracking-tight">PENGUMUMAN BELUM DIBUKA</h2>
+                <p className="text-slate-500 font-medium">Sistem pencarian akan aktif secara otomatis dalam:</p>
+              </div>
+
+              <div className="grid grid-cols-4 gap-4">
+                {[
+                  { label: 'HARI', value: timeLeft.days },
+                  { label: 'JAM', value: timeLeft.hours },
+                  { label: 'MENIT', value: timeLeft.minutes },
+                  { label: 'DETIK', value: timeLeft.seconds },
+                ].map((item, idx) => (
+                  <div key={idx} className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
+                    <p className="text-2xl md:text-3xl font-black text-blue-600 tabular-nums">
+                      {String(item.value).padStart(2, '0')}
+                    </p>
+                    <p className="text-[10px] font-bold text-slate-400 mt-1">{item.label}</p>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="pt-4">
+                <p className="text-xs text-slate-400 italic font-medium">
+                  Waktu Target: {new Date(settings?.countdownTargetDate || '').toLocaleString('id-ID', { 
+                    dateStyle: 'long', 
+                    timeStyle: 'short' 
+                  })}
+                </p>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+               key="search-form"
+               initial={{ opacity: 0, scale: 0.95 }}
+               animate={{ opacity: 1, scale: 1 }}
+               transition={{ delay: 0.1 }}
+            >
+              <form onSubmit={(e) => { e.preventDefault(); performSearch(nisn); }} className="relative group">
+                <div className="relative overflow-hidden rounded-[2rem] shadow-2xl shadow-blue-100 ring-8 ring-white">
+                  <input 
+                    type="text" 
+                    placeholder="Masukkan NISN..." 
+                    className="w-full pl-7 pr-36 py-6 bg-white border-none outline-none text-xl font-bold placeholder:text-slate-300 text-slate-800"
+                    value={nisn}
+                    onChange={e => setNisn(e.target.value)}
+                  />
+                  <button 
+                    type="submit"
+                    disabled={searching}
+                    className="absolute right-2 top-2 bottom-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 rounded-[1.5rem] flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+                  >
+                    {searching ? (
+                       <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white"></div>
+                    ) : (
+                      <>
+                        <Search className="w-5 h-5" />
+                        <span className="hidden sm:inline">Cari</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+              <p className="mt-4 text-center text-slate-400 text-sm font-medium">
+                Nomor Induk Siswa Nasional (10 Digit)
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence mode="wait">
           {error && (

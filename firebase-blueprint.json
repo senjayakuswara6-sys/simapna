@@ -38,7 +38,9 @@
         "academicYear": { "type": "string" },
         "graduationDate": { "type": "string" },
         "plenaryDate": { "type": "string", "description": "Tanggal Rapat Pleno Dewan Guru" },
-        "letterNumberTemplate": { "type": "string" }
+        "letterNumberTemplate": { "type": "string" },
+        "isCountdownActive": { "type": "boolean" },
+        "countdownTargetDate": { "type": "string", "description": "ISO DateTime string for countdown target" }
       }
     },
     "Asset": {

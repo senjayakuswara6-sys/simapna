@@ -28,4 +28,6 @@ export interface SchoolSettings {
   plenaryDate: string;
   letterNumberTemplate: string;
   signatureStampUrl?: string;
+  isCountdownActive?: boolean;
+  countdownTargetDate?: string;
 }
