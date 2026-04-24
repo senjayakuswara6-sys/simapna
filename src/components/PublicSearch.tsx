@@ -12,6 +12,7 @@ export default function PublicSearch() {
   const [student, setStudent] = useState<Student | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [settings, setSettings] = useState<SchoolSettings | null>(null);
+  const [loadingSettings, setLoadingSettings] = useState(true);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -29,9 +30,20 @@ export default function PublicSearch() {
             logoUrl: logoSnap.exists() ? logoSnap.data().url : '',
             secondaryLogoUrl: uiLogoSnap.exists() ? uiLogoSnap.data().url : '',
           });
+
+          // Preliminary lock check
+          if (data.isCountdownActive && data.countdownTargetDate) {
+            const target = new Date(data.countdownTargetDate).getTime();
+            const now = new Date().getTime();
+            if (target > now) {
+              setIsLocked(true);
+            }
+          }
         }
       } catch (error) {
         console.error(error);
+      } finally {
+        setLoadingSettings(false);
       }
     };
     fetchSettings();
@@ -58,10 +70,11 @@ export default function PublicSearch() {
   useEffect(() => {
     if (!settings?.isCountdownActive || !settings?.countdownTargetDate) {
       setIsLocked(false);
+      setTimeLeft(null);
       return;
     }
 
-    const timer = setInterval(() => {
+    const calculate = () => {
       const target = new Date(settings.countdownTargetDate!).getTime();
       const now = new Date().getTime();
       const difference = target - now;
@@ -69,7 +82,7 @@ export default function PublicSearch() {
       if (difference <= 0) {
         setIsLocked(false);
         setTimeLeft(null);
-        clearInterval(timer);
+        return true; // Finished
       } else {
         setIsLocked(true);
         const days = Math.floor(difference / (1000 * 60 * 60 * 24));
@@ -77,11 +90,21 @@ export default function PublicSearch() {
         const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((difference % (1000 * 60)) / 1000);
         setTimeLeft({ days, hours, minutes, seconds });
+        return false;
       }
+    };
+
+    // Initial calculation
+    const isFinished = calculate();
+    if (isFinished) return;
+
+    const timer = setInterval(() => {
+      const finished = calculate();
+      if (finished) clearInterval(timer);
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [settings]);
+  }, [settings?.isCountdownActive, settings?.countdownTargetDate]);
 
   useEffect(() => {
     let timer: any;
@@ -97,6 +120,10 @@ export default function PublicSearch() {
   }, [celebrating, countdown]);
 
   const performSearch = async (targetNisn: string) => {
+    if (isLocked) {
+      setError('Akses pencarian belum dibuka.');
+      return;
+    }
     const cleanNisn = targetNisn.trim();
     if (!cleanNisn) return;
 
@@ -155,6 +182,17 @@ export default function PublicSearch() {
       document.title = originalTitle;
     }, 1000);
   };
+
+  if (loadingSettings) {
+    return (
+      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent shadow-xl"></div>
+          <p className="font-bold text-slate-400 animate-pulse tracking-widest text-xs uppercase">Menyiapkan Sistem...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (celebrating) {
     return (
@@ -271,7 +309,7 @@ export default function PublicSearch() {
 
         {/* Search Box or Countdown */}
         <AnimatePresence mode="wait">
-          {isLocked && timeLeft ? (
+          {isLocked ? (
             <motion.div
               key="countdown"
               initial={{ opacity: 0, y: 20 }}
@@ -283,32 +321,39 @@ export default function PublicSearch() {
                 <AlertCircle className="w-8 h-8 text-orange-500" />
               </div>
               <div className="space-y-2">
-                <h2 className="text-2xl font-black text-slate-800 tracking-tight">PENGUMUMAN BELUM DIBUKA</h2>
-                <p className="text-slate-500 font-medium">Sistem pencarian akan aktif secara otomatis dalam:</p>
+                <h2 className="text-2xl font-black text-slate-800 tracking-tight leading-tight">PENGUMUMAN BELUM DIBUKA</h2>
+                <p className="text-slate-500 font-medium italic">Sistem pencarian akan aktif secara otomatis dalam:</p>
               </div>
 
-              <div className="grid grid-cols-4 gap-4">
-                {[
-                  { label: 'HARI', value: timeLeft.days },
-                  { label: 'JAM', value: timeLeft.hours },
-                  { label: 'MENIT', value: timeLeft.minutes },
-                  { label: 'DETIK', value: timeLeft.seconds },
-                ].map((item, idx) => (
-                  <div key={idx} className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
-                    <p className="text-2xl md:text-3xl font-black text-blue-600 tabular-nums">
-                      {String(item.value).padStart(2, '0')}
-                    </p>
-                    <p className="text-[10px] font-bold text-slate-400 mt-1">{item.label}</p>
-                  </div>
-                ))}
-              </div>
+              {timeLeft ? (
+                <div className="grid grid-cols-4 gap-3 sm:gap-4">
+                  {[
+                    { label: 'HARI', value: timeLeft.days },
+                    { label: 'JAM', value: timeLeft.hours },
+                    { label: 'MENIT', value: timeLeft.minutes },
+                    { label: 'DETIK', value: timeLeft.seconds },
+                  ].map((item, idx) => (
+                    <div key={idx} className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
+                      <p className="text-2xl md:text-3xl font-black text-blue-600 tabular-nums">
+                        {String(item.value).padStart(2, '0')}
+                      </p>
+                      <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tighter sm:tracking-normal">{item.label}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 flex justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-100 border-t-blue-600"></div>
+                </div>
+              )}
               
-              <div className="pt-4">
-                <p className="text-xs text-slate-400 italic font-medium">
-                  Waktu Target: {new Date(settings?.countdownTargetDate || '').toLocaleString('id-ID', { 
+              <div className="pt-4 border-t border-slate-100/50">
+                <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mb-1">Target Waktu</p>
+                <p className="text-sm text-slate-600 font-bold">
+                  {new Date(settings?.countdownTargetDate || '').toLocaleString('id-ID', { 
                     dateStyle: 'long', 
                     timeStyle: 'short' 
-                  })}
+                  })} WIB
                 </p>
               </div>
             </motion.div>
