@@ -42,25 +42,25 @@ export default function SKLPreview({ student, isAdminView = false }: SKLPreviewP
       </div>
 
       {/* Title */}
-      <div className="text-center mb-8">
+      <div className="text-center mb-4">
         <h2 className="text-[14pt] font-bold underline uppercase">Surat Keterangan Lulus</h2>
         <p className="font-bold">No. {settings.letterNumberTemplate}</p>
       </div>
 
       {/* Opening */}
-      <div className="mb-6">
+      <div className="mb-4" style={{ lineHeight: '1.5' }}>
         <p>Kepala {settings.schoolName} Tahun Pelajaran {settings.academicYear}, dengan berdasarkan:</p>
-        <ol className="list-decimal ml-8 mt-2 space-y-1">
+        <ol className="list-decimal ml-8 mt-1" style={{ lineHeight: '1' }}>
           <li>Penyelesaian seluruh program pembelajaran pada kurikulum merdeka;</li>
           <li>Kriteria kelulusan dari satuan pendidikan sesuai dengan peraturan perundang-undangan;</li>
           <li>Rapat Pleno Dewan Guru tentang Penetapan Kelulusan pada tanggal {formatDate(settings.plenaryDate || settings.graduationDate)};</li>
         </ol>
       </div>
 
-      <p className="mb-4">Menerangkan bahwa:</p>
+      <p className="mb-2 leading-none">Menerangkan bahwa:</p>
 
       {/* Student Profile Info */}
-      <div className="ml-8 space-y-1 mb-6">
+      <div className="ml-8 space-y-0.5 mb-4" style={{ lineHeight: '1.15' }}>
         <div className="grid grid-cols-[200px_20px_1fr]">
           <span>Nama</span><span>:</span><span className="font-bold uppercase">{student.name}</span>
         </div>
@@ -81,7 +81,7 @@ export default function SKLPreview({ student, isAdminView = false }: SKLPreviewP
         </div>
         <div className="grid grid-cols-[200px_20px_1fr]">
           <span>Peminatan/Mapel Pilihan</span><span>:</span>
-          <div className="space-y-0.5">
+          <div className="space-y-0">
             {student.subjects && (Array.isArray(student.subjects) ? student.subjects : Object.keys(student.subjects)).map((name, idx) => (
               <p key={idx}>{idx + 1}. {name}</p>
             ))}
@@ -90,11 +90,11 @@ export default function SKLPreview({ student, isAdminView = false }: SKLPreviewP
       </div>
 
       {/* Declaration */}
-      <div className="mb-8">
+      <div className="mb-4">
         <div className="grid grid-cols-[200px_20px_1fr] items-center">
           <span className="font-bold">Dinyatakan</span>
           <span className="font-bold">:</span>
-          <span className="font-bold text-[13pt] tracking-[0.2em]">
+          <span className="font-bold text-[12pt] tracking-[0.2em]">
             <span className={student.status === 'TIDAK LULUS' ? 'line-through decoration-2' : ''}>LULUS</span>
             <span> / </span>
             <span className={student.status === 'LULUS' ? 'line-through decoration-2' : ''}>TIDAK LULUS</span>
@@ -102,38 +102,38 @@ export default function SKLPreview({ student, isAdminView = false }: SKLPreviewP
         </div>
       </div>
 
-      <div className="mb-8 font-bold">
+      <div className="mb-4 font-bold">
         <p>dengan Rata-rata Nilai*: {student.averageScore.toLocaleString('id-ID', { minimumFractionDigits: 2 })}</p>
       </div>
 
-      <div className="mb-8 italic text-sm">
+      <div className="mb-4 italic text-[9pt] leading-tight">
         <p>Surat Keterangan Lulus (SKL) ini diterbitkan pada tanggal {formatDate(settings.graduationDate)} dan bersifat sementara hingga murid menerima ijazah dan transkrip nilai.</p>
       </div>
 
       {/* Signature Section */}
-      <div className="flex justify-end mt-8 px-8">
+      <div className="flex justify-end mt-4 px-8">
         <div className="w-[280px] text-center flex flex-col items-center">
           <p>{settings.regency}, {formatDate(settings.graduationDate)}</p>
           <p>Kepala Sekolah,</p>
           
-          <div className="h-20 flex items-center justify-center my-1">
+          <div className="h-16 flex items-center justify-center my-0.5">
             {!isAdminView ? (
-              <div className="flex flex-col items-center gap-1 border border-slate-200 p-1 rounded-sm">
-                <QRCodeSVG value={verificationUrl} size={70} />
-                <p className="text-[6pt] text-slate-400">Digital Signature</p>
+              <div className="flex flex-col items-center gap-0.5 border border-slate-100 p-0.5 rounded-sm">
+                <QRCodeSVG value={verificationUrl} size={60} />
+                <p className="text-[5pt] text-slate-400">Digital Signature</p>
               </div>
             ) : (
-              <div className="h-full"></div> /* Empty space for manual signature */
+              <div className="h-full"></div>
             )}
           </div>
 
-          <p className="font-bold underline text-[12pt]">{settings.headmasterName}</p>
-          <p>NPA. {settings.headmasterNip}</p>
+          <p className="font-bold underline text-[11pt]">{settings.headmasterName}</p>
+          <p className="text-[10pt]">NPA. {settings.headmasterNip}</p>
         </div>
       </div>
 
       {/* Footer Info */}
-      <div className="mt-8 text-[9pt]">
+      <div className="mt-4 text-[8pt] leading-none">
         <p>Keterangan:</p>
         <p>*) rata-rata nilai murid yang sama dengan nilai yang akan ditulis dalam Transkrip Nilai Ijazah.</p>
       </div>
