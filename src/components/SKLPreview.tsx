@@ -191,57 +191,39 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
               margin: 0;
             }
             
-            html, body {
-              margin: 0 !important;
-              padding: 0 !important;
+            body { 
+              visibility: hidden !important; 
               background: white !important;
-              height: auto !important;
-              overflow: visible !important;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
             }
 
-            /* Hide the main application UI that shouldn't be printed */
-            aside, header, nav, footer, button, .print-hide, .bg-black\\/60, .backdrop-blur-sm, .print\\:hidden {
-              display: none !important;
-            }
-
-            /* Reset any transforms or opacities that might break print */
-            * {
-              transform: none !important;
-              opacity: 1 !important;
-              box-shadow: none !important;
-            }
-
-            /* Make modal root fill the page */
             .print-modal-root {
+              visibility: visible !important;
               position: absolute !important;
               top: 0 !important;
               left: 0 !important;
-              right: 0 !important;
-              bottom: 0 !important;
-              height: auto !important;
-              background: white !important;
-              z-index: 99999 !important;
-              display: block !important;
-            }
-
-            .print-modal-content {
-              display: block !important;
-              padding: 0 !important;
-              margin: 0 !important;
               width: 100% !important;
               height: auto !important;
+              display: block !important;
+              z-index: 99999 !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              background: white !important;
             }
 
-            /* Hide modal header/title bar */
+            .print-modal-root * {
+              visibility: visible !important;
+            }
+
+            /* Hide specific UI elements inside the modal */
+            .print-modal-root button,
+            .print-modal-root .print-hide,
             .print-modal-content > div:first-child {
               display: none !important;
+              visibility: hidden !important;
             }
 
+            /* Main document area style */
             .skl-printable-area {
-              visibility: visible !important;
-              display: block !important;
               margin: 0 auto !important;
               padding: 1.5cm !important;
               width: 210mm !important;
@@ -250,6 +232,22 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
               page-break-inside: avoid !important;
               background: white !important;
               box-sizing: border-box !important;
+              display: block !important;
+              position: relative !important;
+            }
+
+            /* Ensure all parent containers are visible and don't clip */
+            #root, #root > div, main, div[key] {
+              visibility: visible !important;
+              overflow: visible !important;
+              height: auto !important;
+              display: block !important;
+              position: static !important;
+              transform: none !important;
+              opacity: 1 !important;
+              min-height: 0 !important;
+              padding: 0 !important;
+              margin: 0 !important;
             }
           }
 

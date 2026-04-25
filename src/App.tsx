@@ -132,7 +132,7 @@ export default function App() {
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-50 flex overflow-hidden print:static print:block print:overflow-visible print:bg-white">
+    <div className="fixed inset-0 bg-slate-50 flex overflow-hidden print:static print:block print:overflow-visible print:bg-white simapna-app">
       {/* Desktop Sidebar - Strictly hidden on mobile */}
       <aside className="w-72 bg-white border-r border-slate-200 hidden md:flex flex-col shrink-0 print:hidden">
         <div className="p-6 flex items-center gap-3 border-b border-slate-100 min-h-[88px]">
