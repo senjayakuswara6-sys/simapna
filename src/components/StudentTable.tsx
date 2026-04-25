@@ -296,7 +296,7 @@ export default function StudentTable() {
         )}
 
         {previewingStudent && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 print:p-0 print:block skl-preview-modal">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 print:p-0 print:block print:static print:bg-white skl-preview-modal print-modal-root overflow-hidden print:overflow-visible">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm print:hidden"
@@ -304,7 +304,7 @@ export default function StudentTable() {
             />
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden print:w-full print:h-auto print:rounded-none print:shadow-none"
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden print:w-full print:h-auto print:rounded-none print:shadow-none print:static print:overflow-visible print:opacity-100 print:transform-none print-modal-content"
             >
               <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0 print:hidden">
                 <h3 className="font-bold text-lg text-slate-800">Preview & Cetak SKL</h3>
@@ -329,7 +329,7 @@ export default function StudentTable() {
         )}
 
         {printAllMode && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 print:p-0 print:block print-all-container">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 print:p-0 print:block print:static print:bg-white print-all-container print-modal-root overflow-hidden print:overflow-visible">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm print:hidden"
@@ -337,7 +337,7 @@ export default function StudentTable() {
             />
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden print:w-full print:h-auto print:rounded-none print:shadow-none"
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden print:w-full print:h-auto print:rounded-none print:shadow-none print:static print:overflow-visible print:opacity-100 print:transform-none print-modal-content"
             >
               <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0 print:hidden">
                 <div>
