@@ -75,7 +75,7 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
         </div>
       )}
 
-      <div className="bg-white shadow-2xl p-[1.5cm] w-[210mm] min-h-[297mm] mx-auto text-black font-['Times_New_Roman',_serif] text-[11pt] leading-relaxed print:shadow-none print:m-0 print:w-full" id="skl-printable">
+      <div className="bg-white shadow-2xl p-[1.5cm] w-[210mm] min-h-[297mm] mx-auto text-black font-['Times_New_Roman',_serif] text-[11pt] leading-relaxed print:shadow-none print:m-0 print:w-full skl-printable-area">
         {/* Header - Full Image */}
         <div className="mb-6 w-full">
            {settings.logoUrl ? (
@@ -187,24 +187,26 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
         <style dangerouslySetInnerHTML={{ __html: `
           @media print {
             body * { visibility: hidden; }
-            #skl-printable, #skl-printable * { visibility: visible; }
-            #skl-printable {
-              position: absolute !important;
-              left: 4mm !important;
-              top: 0 !important;
-              margin: 0 !important;
-              width: 210mm;
-              min-height: 297mm;
-              padding: 1.5cm;
-              box-shadow: none;
+            .skl-printable-area, .skl-printable-area * { visibility: visible; }
+            .skl-printable-area {
+              position: relative !important;
+              margin: 0 auto !important;
+              padding: 1.5cm !important;
+              width: 210mm !important;
+              min-height: 297mm !important;
+              box-shadow: none !important;
               font-family: "Times New Roman", Times, serif;
+              visibility: visible !important;
+              display: block !important;
+              float: none !important;
+              overflow: visible !important;
             }
           }
           @page {
             size: A4;
             margin: 0;
           }
-          #skl-printable {
+          .skl-printable-area {
             font-family: "Times New Roman", Times, serif;
             box-sizing: border-box;
           }
