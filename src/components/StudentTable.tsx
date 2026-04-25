@@ -306,7 +306,7 @@ export default function StudentTable() {
               initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
               className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden print:w-full print:h-auto print:rounded-none print:shadow-none"
             >
-              <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0">
+              <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0 print:hidden">
                 <h3 className="font-bold text-lg text-slate-800">Preview & Cetak SKL</h3>
                 <div className="flex items-center gap-2">
                   <button 
@@ -321,7 +321,7 @@ export default function StudentTable() {
                   </button>
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto bg-slate-200 p-8 flex justify-center items-start print:bg-white print:p-0">
+              <div className="flex-1 overflow-y-auto bg-slate-200 p-8 flex justify-center items-start print:bg-white print:p-0 print:overflow-visible print:block">
                 <SKLPreview student={previewingStudent} isAdminView={true} />
               </div>
             </motion.div>
@@ -339,7 +339,7 @@ export default function StudentTable() {
               initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
               className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden print:w-full print:h-auto print:rounded-none print:shadow-none"
             >
-              <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0">
+              <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0 print:hidden">
                 <div>
                   <h3 className="font-bold text-lg text-slate-800">Cetak Masal SKL</h3>
                   <p className="text-xs text-slate-500">Mencetak {filteredAndSortedStudents.length} dokumen sekaligus.</p>
@@ -373,7 +373,7 @@ export default function StudentTable() {
                   </button>
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto bg-slate-200 p-8 space-y-8 print:bg-white print:p-0 print:space-y-0">
+              <div className="flex-1 overflow-y-auto bg-slate-200 p-8 space-y-8 print:bg-white print:p-0 print:space-y-0 print:overflow-visible print:block">
                 {filteredAndSortedStudents.map((s, idx) => (
                   <div key={s.id} className={idx > 0 ? "print:break-before-page" : ""}>
                     <SKLPreview student={s} isAdminView={false} forcedShowStamp={globalShowStamp} />

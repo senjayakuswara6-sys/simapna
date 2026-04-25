@@ -195,74 +195,60 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
               margin: 0 !important;
               padding: 0 !important;
               background: white !important;
+              height: auto !important;
+              overflow: visible !important;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
             }
 
-            /* Hide everything else */
-            body * {
-              visibility: hidden;
+            /* Hiding unrelated UI */
+            aside, header, nav, footer, button, .print-hide, .bg-black\\/60 {
+              display: none !important;
             }
 
-            /* Show printable areas and their containers */
-            .skl-preview-modal,
-            .print-all-container,
-            .skl-preview-modal *,
-            .print-all-container *,
-            .skl-printable-area,
-            .skl-printable-area * {
-              visibility: visible !important;
-            }
-
-            /* Position the modals to take over the page */
-            .skl-preview-modal,
-            .print-all-container {
+            /* Make modal containers behave like static pages */
+            .skl-preview-modal, .print-all-container {
               position: absolute !important;
               top: 0 !important;
               left: 0 !important;
               width: 100% !important;
               height: auto !important;
               display: block !important;
-              padding: 0 !important;
               margin: 0 !important;
+              padding: 0 !important;
               background: white !important;
+              z-index: 9999 !important;
               overflow: visible !important;
+              visibility: visible !important;
             }
 
-            /* Ensure internal wrappers are visible and not scrollable */
-            .skl-preview-modal > div,
-            .print-all-container > div,
-            .skl-preview-modal > div > div,
-            .print-all-container > div > div {
-              overflow: visible !important;
-              height: auto !important;
-              max-height: none !important;
-              width: 100% !important;
+            .skl-preview-modal *, .print-all-container * {
+              visibility: visible !important;
+            }
+
+            .skl-preview-modal > div, .print-all-container > div {
               position: static !important;
-              background: white !important;
+              width: 100% !important;
+              height: auto !important;
               margin: 0 !important;
               padding: 0 !important;
+              background: white !important;
               box-shadow: none !important;
               border: none !important;
+              overflow: visible !important;
             }
 
-            /* Document styling */
             .skl-printable-area {
               margin: 0 auto !important;
               padding: 1.5cm !important;
               width: 210mm !important;
               height: 297mm !important;
-              box-shadow: none !important;
-              background: white !important;
               page-break-after: always !important;
               page-break-inside: avoid !important;
+              background: white !important;
               display: block !important;
-              position: relative !important;
               box-sizing: border-box !important;
-            }
-
-            /* Hide UI elements */
-            button, .print-hide, .skl-preview-modal > div > div:first-child, .print-all-container > div > div:first-child {
-              display: none !important;
-              visibility: hidden !important;
+              box-shadow: none !important;
             }
           }
 
