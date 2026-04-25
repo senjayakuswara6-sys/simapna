@@ -132,7 +132,7 @@ export default function App() {
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-50 flex overflow-hidden">
+    <div className="fixed inset-0 bg-slate-50 flex overflow-hidden print:static print:block print:overflow-visible print:bg-white">
       {/* Desktop Sidebar - Strictly hidden on mobile */}
       <aside className="w-72 bg-white border-r border-slate-200 hidden md:flex flex-col shrink-0 print:hidden">
         <div className="p-6 flex items-center gap-3 border-b border-slate-100 min-h-[88px]">
@@ -197,7 +197,7 @@ export default function App() {
       </aside>
 
       {/* Main Content */}
-       <main className="flex-1 flex flex-col min-w-0 bg-slate-50 relative h-full">
+       <main className="flex-1 flex flex-col min-w-0 bg-slate-50 relative h-full print:block print:h-auto print:static print:bg-white">
          {/* Mobile Header (Fixed) */}
          <header className="md:hidden sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-slate-200 p-4 flex items-center justify-between shadow-sm h-16 shrink-0 print:hidden">
            <div className="flex items-center gap-2 overflow-hidden">
@@ -229,7 +229,7 @@ export default function App() {
          </header>
 
          {/* Tab Content */}
-         <div className="flex-1 overflow-y-auto p-4 md:p-10 pb-28 md:pb-10 scroll-smooth">
+         <div className="flex-1 overflow-y-auto p-4 md:p-10 pb-28 md:pb-10 scroll-smooth print:overflow-visible print:p-0 print:block">
            <div className="max-w-7xl mx-auto">
              <AnimatePresence mode="wait">
                <motion.div

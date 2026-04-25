@@ -199,14 +199,20 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
               overflow: visible !important;
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
+              visibility: hidden !important;
             }
 
-            /* Hiding unrelated UI */
+            /* Hide all unrelated UI */
             aside, header, nav, footer, button, .print-hide, .bg-black\\/60 {
               display: none !important;
             }
 
-            /* Make modal containers behave like static pages */
+            /* Force visibility for print content */
+            .skl-preview-modal, .print-all-container, .skl-preview-modal *, .print-all-container *, .skl-printable-area, .skl-printable-area * {
+              visibility: visible !important;
+            }
+
+            /* Modal cleanup for print */
             .skl-preview-modal, .print-all-container {
               position: absolute !important;
               top: 0 !important;
@@ -217,17 +223,12 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
               margin: 0 !important;
               padding: 0 !important;
               background: white !important;
-              z-index: 9999 !important;
+              z-index: 99999 !important;
               overflow: visible !important;
-              visibility: visible !important;
-            }
-
-            .skl-preview-modal *, .print-all-container * {
-              visibility: visible !important;
             }
 
             .skl-preview-modal > div, .print-all-container > div {
-              position: static !important;
+              position: relative !important;
               width: 100% !important;
               height: auto !important;
               margin: 0 !important;
@@ -236,6 +237,8 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
               box-shadow: none !important;
               border: none !important;
               overflow: visible !important;
+              transform: none !important;
+              opacity: 1 !important;
             }
 
             .skl-printable-area {
@@ -249,10 +252,10 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
               display: block !important;
               box-sizing: border-box !important;
               box-shadow: none !important;
+              position: relative !important;
             }
           }
 
-          /* General styles (non-print) */
           .skl-printable-area {
             font-family: "Times New Roman", Times, serif;
             box-sizing: border-box;
