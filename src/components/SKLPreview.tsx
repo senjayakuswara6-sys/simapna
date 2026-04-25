@@ -186,29 +186,48 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
 
         <style dangerouslySetInnerHTML={{ __html: `
           @media print {
-            body * { visibility: hidden; }
-            .skl-printable-area, .skl-printable-area * { visibility: visible; }
+            /* Hide everything by default using display: none to not take space */
+            #root > :not(.print-all-container):not(.skl-preview-modal) {
+              display: none !important;
+            }
+            
+            /* If within a modal or specific container, hide other siblings */
+            .fixed.inset-0:not(.print-all-container):not(.skl-preview-modal) {
+              display: none !important;
+            }
+
+            body, html {
+              margin: 0 !important;
+              padding: 0 !important;
+              background: white !important;
+            }
+
             .skl-printable-area {
-              position: relative !important;
               margin: 0 auto !important;
               padding: 1.5cm !important;
               width: 210mm !important;
-              min-height: 297mm !important;
+              height: 297mm !important; /* Fixed height for A4 */
               box-shadow: none !important;
               font-family: "Times New Roman", Times, serif;
-              visibility: visible !important;
+              background: white !important;
+              page-break-after: always !important;
+              page-break-inside: avoid !important;
               display: block !important;
-              float: none !important;
-              overflow: visible !important;
+              position: relative !important;
+            }
+
+            /* Remove extra margins from headers/footers browser settings */
+            @page {
+              size: A4;
+              margin: 0;
             }
           }
-          @page {
-            size: A4;
-            margin: 0;
-          }
+
+          /* General styles */
           .skl-printable-area {
             font-family: "Times New Roman", Times, serif;
             box-sizing: border-box;
+            background: white;
           }
           .tabular-nums {
             font-variant-numeric: tabular-nums;

@@ -296,15 +296,15 @@ export default function StudentTable() {
         )}
 
         {previewingStudent && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 print:p-0 print:block skl-preview-modal">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm print:hidden"
               onClick={() => setPreviewingStudent(null)}
             />
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden"
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden print:w-full print:h-auto print:rounded-none print:shadow-none"
             >
               <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0">
                 <h3 className="font-bold text-lg text-slate-800">Preview & Cetak SKL</h3>
@@ -329,15 +329,15 @@ export default function StudentTable() {
         )}
 
         {printAllMode && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 print:p-0 print:block print-all-container">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm print:hidden"
               onClick={() => setPrintAllMode(false)}
             />
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden"
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden print:w-full print:h-auto print:rounded-none print:shadow-none"
             >
               <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0">
                 <div>
