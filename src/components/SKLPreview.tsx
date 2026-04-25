@@ -186,44 +186,87 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
 
         <style dangerouslySetInnerHTML={{ __html: `
           @media print {
-            /* Hide everything by default using display: none to not take space */
-            #root > :not(.print-all-container):not(.skl-preview-modal) {
-              display: none !important;
+            @page {
+              size: A4;
+              margin: 0;
             }
             
-            /* If within a modal or specific container, hide other siblings */
-            .fixed.inset-0:not(.print-all-container):not(.skl-preview-modal) {
-              display: none !important;
-            }
-
-            body, html {
+            html, body {
               margin: 0 !important;
               padding: 0 !important;
               background: white !important;
             }
 
+            /* Hide everything else */
+            body * {
+              visibility: hidden;
+            }
+
+            /* Show printable areas and their containers */
+            .skl-preview-modal,
+            .print-all-container,
+            .skl-preview-modal *,
+            .print-all-container *,
+            .skl-printable-area,
+            .skl-printable-area * {
+              visibility: visible !important;
+            }
+
+            /* Position the modals to take over the page */
+            .skl-preview-modal,
+            .print-all-container {
+              position: absolute !important;
+              top: 0 !important;
+              left: 0 !important;
+              width: 100% !important;
+              height: auto !important;
+              display: block !important;
+              padding: 0 !important;
+              margin: 0 !important;
+              background: white !important;
+              overflow: visible !important;
+            }
+
+            /* Ensure internal wrappers are visible and not scrollable */
+            .skl-preview-modal > div,
+            .print-all-container > div,
+            .skl-preview-modal > div > div,
+            .print-all-container > div > div {
+              overflow: visible !important;
+              height: auto !important;
+              max-height: none !important;
+              width: 100% !important;
+              position: static !important;
+              background: white !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              box-shadow: none !important;
+              border: none !important;
+            }
+
+            /* Document styling */
             .skl-printable-area {
               margin: 0 auto !important;
               padding: 1.5cm !important;
               width: 210mm !important;
-              height: 297mm !important; /* Fixed height for A4 */
+              height: 297mm !important;
               box-shadow: none !important;
-              font-family: "Times New Roman", Times, serif;
               background: white !important;
               page-break-after: always !important;
               page-break-inside: avoid !important;
               display: block !important;
               position: relative !important;
+              box-sizing: border-box !important;
             }
 
-            /* Remove extra margins from headers/footers browser settings */
-            @page {
-              size: A4;
-              margin: 0;
+            /* Hide UI elements */
+            button, .print-hide, .skl-preview-modal > div > div:first-child, .print-all-container > div > div:first-child {
+              display: none !important;
+              visibility: hidden !important;
             }
           }
 
-          /* General styles */
+          /* General styles (non-print) */
           .skl-printable-area {
             font-family: "Times New Roman", Times, serif;
             box-sizing: border-box;
