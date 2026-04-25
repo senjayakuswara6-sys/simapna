@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db, handleFirestoreError } from '../lib/firebase';
 import { collection, query, onSnapshot, doc, deleteDoc, addDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { Student } from '../types';
-import { Search, Plus, Upload, Trash2, Printer, Edit, X, Download, FileSpreadsheet } from 'lucide-react';
+import { Search, Plus, Upload, Trash2, Printer, Edit, X, Download, FileSpreadsheet, Filter, ArrowUpDown } from 'lucide-react';
 import ExcelImport from './ExcelImport';
 import StudentForm from './StudentForm';
 import SKLPreview from './SKLPreview';
@@ -13,10 +13,14 @@ export default function StudentTable() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'name-asc' | 'name-desc' | 'nisn-asc'>('name-asc');
+  const [classFilter, setClassFilter] = useState('Semua Kelas');
   const [showImport, setShowImport] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [previewingStudent, setPreviewingStudent] = useState<Student | null>(null);
+  const [printAllMode, setPrintAllMode] = useState(false);
+  const [globalShowStamp, setGlobalShowStamp] = useState(true);
   const [settings, setSettings] = useState<any>(null);
 
   useEffect(() => {
@@ -30,10 +34,13 @@ export default function StudentTable() {
   }, []);
 
   const handlePrint = () => {
-    if (!previewingStudent) return;
     const originalTitle = document.title;
-    const appName = settings?.secondarySchoolName || 'SIMAPNA';
-    const fileName = `${previewingStudent.name.replace(/\s+/g, '_').toUpperCase()}_${previewingStudent.nisn}_${appName.replace(/\s+/g, '_').toUpperCase()}`;
+    const appName = settings?.schoolName || 'SIMAPNA';
+    
+    let fileName = `CETAK_MASAL_${appName.replace(/\s+/g, '_').toUpperCase()}`;
+    if (previewingStudent) {
+      fileName = `${previewingStudent.name.replace(/\s+/g, '_').toUpperCase()}_${previewingStudent.nisn}_${appName.replace(/\s+/g, '_').toUpperCase()}`;
+    }
     
     document.title = fileName;
     window.print();
@@ -53,14 +60,23 @@ export default function StudentTable() {
     return () => unsubscribe();
   }, []);
 
-  const filteredStudents = students.filter(s => {
-    const term = searchTerm.toLowerCase();
-    return (
-      (s.name || '').toLowerCase().includes(term) || 
-      (s.nisn || '').includes(searchTerm) ||
-      (s.nis || '').includes(searchTerm)
-    );
-  });
+  const classes = ['Semua Kelas', ...new Set(students.map(s => s.className).filter(Boolean))].sort() as string[];
+
+  const filteredAndSortedStudents = students
+    .filter(s => {
+      const term = searchTerm.toLowerCase();
+      const matchesSearch = (s.name || '').toLowerCase().includes(term) || 
+                           (s.nisn || '').includes(searchTerm) ||
+                           (s.nis || '').includes(searchTerm);
+      const matchesClass = classFilter === 'Semua Kelas' || s.className === classFilter;
+      return matchesSearch && matchesClass;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'name-asc') return (a.name || '').localeCompare(b.name || '');
+      if (sortBy === 'name-desc') return (b.name || '').localeCompare(a.name || '');
+      if (sortBy === 'nisn-asc') return (a.nisn || '').localeCompare(b.nisn || '');
+      return 0;
+    });
 
   const handleDelete = async (id: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
@@ -73,7 +89,7 @@ export default function StudentTable() {
   };
 
   const handleExport = () => {
-    const exportData = students.map(s => ({
+    const exportData = filteredAndSortedStudents.map(s => ({
       'Nama': s.name,
       'NIS': s.nis,
       'NISN': s.nisn,
@@ -99,7 +115,14 @@ export default function StudentTable() {
           <h2 className="text-2xl font-bold text-slate-800">Data Siswa</h2>
           <p className="text-slate-500">Total {students.length} siswa terdaftar.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button 
+            onClick={() => setPrintAllMode(true)}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm shadow-sm"
+          >
+            <Printer className="w-4 h-4" />
+            Cetak Semua
+          </button>
           <button 
             onClick={handleExport}
             className="flex items-center gap-2 bg-slate-600 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm shadow-sm"
@@ -125,8 +148,8 @@ export default function StudentTable() {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-slate-100 flex items-center gap-3">
-          <div className="relative flex-1">
+        <div className="p-4 border-b border-slate-100 flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <input 
               type="text" 
@@ -136,15 +159,44 @@ export default function StudentTable() {
               onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
+          
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+              <select
+                value={classFilter}
+                onChange={e => setClassFilter(e.target.value)}
+                className="pl-10 pr-8 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm bg-white cursor-pointer min-w-[140px] appearance-none"
+              >
+                {classes.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="relative">
+              <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value as any)}
+                className="pl-10 pr-8 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm bg-white cursor-pointer min-w-[160px] appearance-none"
+              >
+                <option value="name-asc">Nama (A-Z)</option>
+                <option value="name-desc">Nama (Z-A)</option>
+                <option value="nisn-asc">NISN Terkecil</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50 text-slate-600 text-xs font-bold uppercase tracking-wider">
+                <th className="px-6 py-4 w-16">No</th>
                 <th className="px-6 py-4">Nama</th>
                 <th className="px-6 py-4">Kelas</th>
-                <th className="px-6 py-4">NIS / NISN</th>
+                <th className="px-6 py-4 whitespace-nowrap">NIS / NISN</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Rata-rata</th>
                 <th className="px-6 py-4 text-right">Aksi</th>
@@ -153,15 +205,18 @@ export default function StudentTable() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">Memuat data...</td>
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">Memuat data...</td>
                 </tr>
-              ) : filteredStudents.length === 0 ? (
+              ) : filteredAndSortedStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">Belum ada data tersedia.</td>
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">Belum ada data tersedia.</td>
                 </tr>
               ) : (
-                filteredStudents.map((student) => (
+                filteredAndSortedStudents.map((student, index) => (
                   <tr key={student.id} className="hover:bg-slate-50 transition-colors group">
+                    <td className="px-6 py-4 text-sm font-bold text-slate-400 tabular-nums">
+                      {index + 1}
+                    </td>
                     <td className="px-6 py-4">
                       <p className="font-bold text-slate-800">{student.name}</p>
                     </td>
@@ -268,6 +323,62 @@ export default function StudentTable() {
               </div>
               <div className="flex-1 overflow-y-auto bg-slate-200 p-8 flex justify-center items-start print:bg-white print:p-0">
                 <SKLPreview student={previewingStudent} isAdminView={true} />
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {printAllMode && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setPrintAllMode(false)}
+            />
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0">
+                <div>
+                  <h3 className="font-bold text-lg text-slate-800">Cetak Masal SKL</h3>
+                  <p className="text-xs text-slate-500">Mencetak {filteredAndSortedStudents.length} dokumen sekaligus.</p>
+                </div>
+                <div className="flex items-center gap-4">
+                  {/* Global Stamp Toggle */}
+                  <div className="bg-slate-100 p-1 rounded-lg flex items-center gap-1 print:hidden">
+                    <button 
+                      onClick={() => setGlobalShowStamp(true)}
+                      className={`px-3 py-1.5 rounded-md text-[10px] font-black transition-all ${globalShowStamp ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
+                    >
+                      DENGAN CAP
+                    </button>
+                    <button 
+                      onClick={() => setGlobalShowStamp(false)}
+                      className={`px-3 py-1.5 rounded-md text-[10px] font-black transition-all ${!globalShowStamp ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500'}`}
+                    >
+                      TANPA CAP
+                    </button>
+                  </div>
+
+                  <button 
+                    onClick={handlePrint}
+                    className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold text-sm shadow-lg shadow-indigo-100"
+                  >
+                    <Printer className="w-4 h-4" />
+                    Cetak Sekarang
+                  </button>
+                  <button onClick={() => setPrintAllMode(false)} className="p-2 hover:bg-slate-100 rounded-full">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto bg-slate-200 p-8 space-y-8 print:bg-white print:p-0 print:space-y-0">
+                {filteredAndSortedStudents.map((s, idx) => (
+                  <div key={s.id} className={idx > 0 ? "print:break-before-page" : ""}>
+                    <SKLPreview student={s} isAdminView={false} forcedShowStamp={globalShowStamp} />
+                  </div>
+                ))}
               </div>
             </motion.div>
           </div>
