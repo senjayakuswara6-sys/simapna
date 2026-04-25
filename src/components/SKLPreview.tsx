@@ -191,63 +191,72 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
               margin: 0;
             }
             
-            body { 
-              visibility: hidden !important; 
-              background: white !important;
+            /* 1. Sembunyikan semua elemen secara default */
+            body * {
+              visibility: hidden !important;
             }
 
-            .print-modal-root {
+            /* 2. Tampilkan kembali area pratinjau dan isinya */
+            .print-modal-root, 
+            .print-modal-root *, 
+            .skl-printable-area, 
+            .skl-printable-area * {
               visibility: visible !important;
+            }
+
+            /* 3. Paksa kontainer utama untuk berada di posisi paling atas */
+            .print-modal-root {
               position: absolute !important;
               top: 0 !important;
               left: 0 !important;
               width: 100% !important;
               height: auto !important;
               display: block !important;
-              z-index: 99999 !important;
-              margin: 0 !important;
-              padding: 0 !important;
               background: white !important;
+              padding: 0 !important;
+              margin: 0 !important;
+              z-index: 9999999 !important;
+              overflow: visible !important;
             }
 
-            .print-modal-root * {
+            /* 4. Pastikan elemen induk tidak menghalangi atau memotong konten */
+            #root, #root > div, main, .App {
               visibility: visible !important;
+              display: block !important;
+              position: static !important;
+              height: auto !important;
+              min-height: 0 !important;
+              overflow: visible !important;
+              transform: none !important;
+              opacity: 1 !important;
             }
 
-            /* Hide specific UI elements inside the modal */
-            .print-modal-root button,
-            .print-modal-root .print-hide,
+            /* 5. Sembunyikan elemen UI yang tidak perlu di atas kertas */
+            .print-hide, 
+            button, 
+            aside, 
+            header, 
+            nav, 
+            footer, 
+            .bg-black\\/60, 
+            .backdrop-blur-sm,
             .print-modal-content > div:first-child {
               display: none !important;
               visibility: hidden !important;
             }
 
-            /* Main document area style */
+            /* 6. Atur area SKL pada ukuran A4 yang tepat */
             .skl-printable-area {
               margin: 0 auto !important;
               padding: 1.5cm !important;
               width: 210mm !important;
-              height: 297mm !important;
+              min-height: 297mm !important;
+              display: block !important;
+              background: white !important;
               page-break-after: always !important;
               page-break-inside: avoid !important;
-              background: white !important;
               box-sizing: border-box !important;
-              display: block !important;
               position: relative !important;
-            }
-
-            /* Ensure all parent containers are visible and don't clip */
-            #root, #root > div, main, div[key] {
-              visibility: visible !important;
-              overflow: visible !important;
-              height: auto !important;
-              display: block !important;
-              position: static !important;
-              transform: none !important;
-              opacity: 1 !important;
-              min-height: 0 !important;
-              padding: 0 !important;
-              margin: 0 !important;
             }
           }
 
