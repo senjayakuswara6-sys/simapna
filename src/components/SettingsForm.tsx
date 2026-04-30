@@ -25,7 +25,11 @@ export default function SettingsForm() {
       return now.toISOString().slice(0, 16);
     })(),
     sklFormat: 'FORMAT_1',
-    f4TopMargin: 5
+    f4TopMargin: 5,
+    f4BottomMargin: 1,
+    f4LeftMargin: 1.5,
+    f4RightMargin: 1.5,
+    printScale: 100
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -415,23 +419,84 @@ export default function SettingsForm() {
               </div>
 
               {settings.sklFormat === 'FORMAT_2' && (
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-slate-700 italic">Jarak Kosong Atas (Top Margin) untuk Kertas Ber-kop (F4)</label>
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="range"
-                      min="0"
-                      max="15"
-                      step="0.5"
-                      className="flex-1"
-                      value={settings.f4TopMargin || 5}
-                      onChange={e => setSettings({ ...settings, f4TopMargin: parseFloat(e.target.value) })}
-                    />
-                    <span className="bg-white px-4 py-2 border border-slate-200 rounded-lg font-bold text-blue-600 min-w-[80px] text-center">
-                      {settings.f4TopMargin || 5} cm
-                    </span>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-slate-700 italic">Jarak Atas (Top)</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          step="0.1"
+                          className="w-24 px-3 py-2 border border-slate-200 rounded-lg"
+                          value={settings.f4TopMargin || 0}
+                          onChange={e => setSettings({ ...settings, f4TopMargin: parseFloat(e.target.value) || 0 })}
+                        />
+                        <span className="text-xs text-slate-500">cm</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-slate-700 italic">Jarak Bawah (Bottom)</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          step="0.1"
+                          className="w-24 px-3 py-2 border border-slate-200 rounded-lg"
+                          value={settings.f4BottomMargin || 0}
+                          onChange={e => setSettings({ ...settings, f4BottomMargin: parseFloat(e.target.value) || 0 })}
+                        />
+                        <span className="text-xs text-slate-500">cm</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-slate-700 italic">Jarak Kiri (Left)</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          step="0.1"
+                          className="w-24 px-3 py-2 border border-slate-200 rounded-lg"
+                          value={settings.f4LeftMargin || 0}
+                          onChange={e => setSettings({ ...settings, f4LeftMargin: parseFloat(e.target.value) || 0 })}
+                        />
+                        <span className="text-xs text-slate-500">cm</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-slate-700 italic">Jarak Kanan (Right)</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          step="0.1"
+                          className="w-24 px-3 py-2 border border-slate-200 rounded-lg"
+                          value={settings.f4RightMargin || 0}
+                          onChange={e => setSettings({ ...settings, f4RightMargin: parseFloat(e.target.value) || 0 })}
+                        />
+                        <span className="text-xs text-slate-500">cm</span>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-400">Atur jarak ini agar teks SKL tidak menimpa kop surat yang sudah ada di kertas fisik Anda.</p>
+
+                  <div className="pt-4 border-t border-blue-100">
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Skala Cetak (Zoom)</label>
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="range"
+                        min="50"
+                        max="100"
+                        step="1"
+                        className="flex-1"
+                        value={settings.printScale || 100}
+                        onChange={e => setSettings({ ...settings, printScale: parseInt(e.target.value) })}
+                      />
+                      <span className="bg-white px-4 py-2 border border-slate-200 rounded-lg font-bold text-blue-600 min-w-[80px] text-center">
+                        {settings.printScale || 100}%
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1 italic">Kecilkan skala jika dokumen terpotong atau terlalu panjang ke bawah (Disarankan 95-100%).</p>
+                  </div>
+
+                  <p className="text-xs text-slate-400 p-2 bg-white rounded border border-blue-100 italic">
+                    * Margin ini khusus untuk Format 2 (F4). Atur sesuai ukuran fisik Kop Surat Anda.
+                  </p>
                 </div>
               )}
             </div>

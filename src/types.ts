@@ -48,4 +48,8 @@ export interface SchoolSettings {
   countdownTargetDate?: string;
   sklFormat: 'FORMAT_1' | 'FORMAT_2';
   f4TopMargin: number; // in cm
+  f4BottomMargin?: number;
+  f4LeftMargin?: number;
+  f4RightMargin?: number;
+  printScale?: number; // percentage
 }
