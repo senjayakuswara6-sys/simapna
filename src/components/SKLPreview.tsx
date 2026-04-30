@@ -75,7 +75,7 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
   };
 
   const scale = (settings.printScale || 100) / 100;
-  const topMargin = format === 'FORMAT_2' ? (settings.f4TopMargin || 2) : 1.5;
+  const topMargin = format === 'FORMAT_2' ? (settings.f4TopMargin || 5) : 1.5;
   const bottomMargin = format === 'FORMAT_2' ? (settings.f4BottomMargin || 1) : 1.5;
   const leftMargin = format === 'FORMAT_2' ? (settings.f4LeftMargin || 1.5) : 1.5;
   const rightMargin = format === 'FORMAT_2' ? (settings.f4RightMargin || 1.5) : 1.5;
@@ -85,13 +85,107 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
     paddingBottom: `${bottomMargin}cm`,
     paddingLeft: `${leftMargin}cm`,
     paddingRight: `${rightMargin}cm`,
-    transform: `scale(${scale})`,
-    transformOrigin: 'top center'
+    // Use zoom for preview, but we'll use a different strategy for print
+    zoom: scale,
   };
 
   return (
-    <div className="relative group">
-      {/* Admin Toggle - Hidden during print */}
+    <div className="relative group skl-preview-root">
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          /* HIDE EVERYTHING BY DEFAULT */
+          body * {
+            visibility: hidden !important;
+          }
+          
+          /* HIDE ALL STYLE AND SCRIPT TAGS CONTENT */
+          style, script {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            width: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          /* ONLY SHOW THE PRINTABLE AREA AND ITS CONTENT */
+          .skl-printable-area, 
+          .skl-printable-area * {
+            visibility: visible !important;
+          }
+
+          /* RESET LAYOUT FOR PRINT */
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            height: auto !important;
+            overflow: visible !important;
+            width: 100% !important;
+          }
+
+          #root, .simapna-app, main, .print-modal-root, .print-modal-content, .print-all-container {
+            visibility: visible !important;
+            display: block !important;
+            position: static !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            min-height: 0 !important;
+            width: 100% !important;
+            overflow: visible !important;
+            background: transparent !important;
+          }
+
+          .skl-printable-area {
+            display: block !important;
+            position: relative !important;
+            margin: 0 auto !important;
+            break-after: page !important;
+            page-break-after: always !important;
+            page-break-inside: avoid !important;
+            width: ${format === 'FORMAT_1' ? '210mm' : '215mm'} !important;
+            height: ${format === 'FORMAT_1' ? '297mm' : '330mm'} !important;
+            padding-top: ${topMargin}cm !important;
+            padding-bottom: ${bottomMargin}cm !important;
+            padding-left: ${leftMargin}cm !important;
+            padding-right: ${rightMargin}cm !important;
+            zoom: ${scale} !important;
+            box-sizing: border-box !important;
+            background: white !important;
+            border: none !important;
+            box-shadow: none !important;
+          }
+
+          .print-hide {
+            display: none !important;
+            visibility: hidden !important;
+          }
+        }
+
+        .skl-preview-root {
+          line-height: normal;
+        }
+
+        .skl-printable-area {
+          font-family: "Times New Roman", Times, serif;
+          box-sizing: border-box;
+          background: white;
+          color: black;
+          line-height: 1.25;
+        }
+        
+        .tabular-nums {
+          font-variant-numeric: tabular-nums;
+        }
+
+        /* Tight table styles */
+        .skl-table td, .skl-table th {
+          padding-top: 1px !important;
+          padding-bottom: 1px !important;
+          line-height: 1.1 !important;
+        }
+      `}} />
       {isAdminView && (
         <div className="flex flex-col items-center gap-4 mb-8 print:hidden max-w-[215mm] mx-auto">
           <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-full px-6 py-2 shadow-sm font-bold text-slate-400 text-xs uppercase tracking-widest">
@@ -193,39 +287,39 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
         {/* Format 2 Subjects Table */}
         {format === 'FORMAT_2' ? (
           <>
-            <p className="mb-1 text-[10.5pt]">Dengan nilai sebagai berikut :</p>
-            <table className="w-full border-collapse border border-black mb-3 text-[10pt]">
-              <thead className="bg-slate-50/20">
-                <tr className="leading-tight">
-                  <th className="border border-black px-1 py-1 w-10 text-center italic">No</th>
-                  <th className="border border-black px-2 py-1 text-center">Mata Pelajaran</th>
-                  <th className="border border-black px-2 py-1 w-24 text-center">Nilai</th>
+            <p className="mb-1 text-[10pt]">Dengan nilai sebagai berikut :</p>
+            <table className="w-full border-collapse border border-black mb-2 text-[9.5pt] skl-table">
+              <thead className="bg-slate-50/10">
+                <tr className="h-[20px]">
+                  <th className="border border-black px-1 py-0 w-8 text-center italic">No</th>
+                  <th className="border border-black px-2 py-0 text-center uppercase text-[9pt]">Mata Pelajaran</th>
+                  <th className="border border-black px-2 py-0 w-20 text-center">Nilai</th>
                 </tr>
               </thead>
               <tbody>
                 {/* Kelompok Umum */}
-                <tr>
-                  <td colSpan={3} className="border border-black px-2 py-0 font-bold text-[9.5pt] bg-slate-50/30">Kelompok Mata Pelajaran Umum</td>
+                <tr className="h-[16px]">
+                  <td colSpan={3} className="border border-black px-2 py-0 font-bold text-[8.5pt] bg-slate-50/5 italic leading-none">Kelompok Mata Pelajaran Umum</td>
                 </tr>
                 {subjectsByCategory.UMUM.map((s, idx) => (
-                  <tr key={s.id}>
-                    <td className="border border-black px-1 py-0 text-center text-[10pt] leading-normal">{idx + 1}</td>
-                    <td className="border border-black px-2 py-0 text-[10pt] leading-normal">{s.name}</td>
-                    <td className="border border-black px-2 py-0 text-center tabular-nums text-[10pt] leading-normal">{getScoreForSubject(s.name)}</td>
+                  <tr key={s.id} className="h-[16px]">
+                    <td className="border border-black px-1 py-0 text-center text-[9.5pt] leading-none">{idx + 1}</td>
+                    <td className="border border-black px-2 py-0 text-[9.5pt] leading-none">{s.name}</td>
+                    <td className="border border-black px-2 py-0 text-center tabular-nums text-[9.5pt] leading-none">{getScoreForSubject(s.name)}</td>
                   </tr>
                 ))}
 
                 {/* Kelompok Pilihan */}
                 {subjectsByCategory.PILIHAN.length > 0 && (
                   <>
-                    <tr>
-                      <td colSpan={3} className="border border-black px-2 py-0 font-bold text-[9.5pt] bg-slate-50/30">Kelompok Mata Pelajaran Pilihan</td>
+                    <tr className="h-[16px]">
+                      <td colSpan={3} className="border border-black px-2 py-0 font-bold text-[8.5pt] bg-slate-50/5 italic leading-none">Kelompok Mata Pelajaran Pilihan</td>
                     </tr>
                     {subjectsByCategory.PILIHAN.map((s, idx) => (
-                      <tr key={s.id}>
-                        <td className="border border-black px-1 py-0 text-center text-[10pt] leading-normal">{subjectsByCategory.UMUM.length + idx + 1}</td>
-                        <td className="border border-black px-2 py-0 text-[10pt] leading-normal">{s.name}</td>
-                        <td className="border border-black px-2 py-0 text-center tabular-nums text-[10pt] leading-normal">{getScoreForSubject(s.name)}</td>
+                      <tr key={s.id} className="h-[16px]">
+                        <td className="border border-black px-1 py-0 text-center text-[9.5pt] leading-none">{subjectsByCategory.UMUM.length + idx + 1}</td>
+                        <td className="border border-black px-2 py-0 text-[9.5pt] leading-none">{s.name}</td>
+                        <td className="border border-black px-2 py-0 text-center tabular-nums text-[9.5pt] leading-none">{getScoreForSubject(s.name)}</td>
                       </tr>
                     ))}
                   </>
@@ -234,24 +328,23 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
                 {/* Kelompok Mulok */}
                 {subjectsByCategory.MULOK.length > 0 && (
                   <>
-                    <tr>
-                      <td colSpan={3} className="border border-black px-2 py-0 font-bold text-[9.5pt] bg-slate-50/30">Muatan Lokal</td>
+                    <tr className="h-[16px]">
+                      <td colSpan={3} className="border border-black px-2 py-0 font-bold text-[8.5pt] bg-slate-50/5 italic leading-none">Muatan Lokal</td>
                     </tr>
                     {subjectsByCategory.MULOK.map((s, idx) => (
-                      <tr key={s.id}>
-                        <td className="border border-black px-1 py-0 text-center text-[10pt] leading-normal">{subjectsByCategory.UMUM.length + subjectsByCategory.PILIHAN.length + idx + 1}</td>
-                        <td className="border border-black px-2 py-0 text-[10pt] leading-normal">{s.name}</td>
-                        <td className="border border-black px-2 py-0 text-center tabular-nums text-[10pt] leading-normal">{getScoreForSubject(s.name)}</td>
+                      <tr key={s.id} className="h-[16px]">
+                        <td className="border border-black px-1 py-0 text-center text-[9.5pt] leading-none">{subjectsByCategory.UMUM.length + subjectsByCategory.PILIHAN.length + idx + 1}</td>
+                        <td className="border border-black px-2 py-0 text-[9.5pt] leading-none">{s.name}</td>
+                        <td className="border border-black px-2 py-0 text-center tabular-nums text-[9.5pt] leading-none">{getScoreForSubject(s.name)}</td>
                       </tr>
                     ))}
                   </>
                 )}
 
-
                 {/* Total Average */}
-                <tr className="bg-slate-50 font-bold">
-                  <td colSpan={2} className="border border-black px-2 py-1 text-center tracking-[0.2em] italic uppercase">Rata - rata</td>
-                  <td className="border border-black px-2 py-1 text-center tabular-nums">{student.averageScore.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <tr className="bg-slate-50/5 font-bold h-[20px]">
+                  <td colSpan={2} className="border border-black px-2 py-0 text-center tracking-[0.2em] italic uppercase text-[9pt]">Rata - rata</td>
+                  <td className="border border-black px-2 py-0 text-center tabular-nums text-[9.5pt]">{student.averageScore.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 </tr>
               </tbody>
             </table>
@@ -285,16 +378,16 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
             <p className="mb-0 text-[10.5pt]">{settings.regency}, {formatDate(settings.graduationDate)}</p>
             <p className="mb-16 leading-tight text-[10.5pt]">Kepala SMAS PGRI Naringgul,</p>
             
-            {showStamp && settings.signatureStampUrl && (
-              <div className="absolute top-[25px] left-[15px] w-[200px] h-[120px] pointer-events-none z-10 transition-all">
-                <img 
-                  src={settings.signatureStampUrl} 
-                  alt="Stamp" 
-                  className="w-full h-full object-contain opacity-90" 
-                  referrerPolicy="no-referrer"
-                />
-              </div>
-            )}
+        {showStamp && settings.signatureStampUrl && (
+          <div className="absolute top-[20px] left-[10px] w-[180px] h-[100px] pointer-events-none z-10 transition-all opacity-80">
+            <img 
+              src={settings.signatureStampUrl} 
+              alt="Stamp" 
+              className="w-full h-full object-contain" 
+              referrerPolicy="no-referrer"
+            />
+          </div>
+        )}
 
             <p className="font-bold underline text-[11pt] relative z-20 leading-none">{settings.headmasterName}</p>
             <p className="text-[10pt] relative z-20 leading-none mt-1">Pembina {settings.headmasterNip}</p>
@@ -302,91 +395,10 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
         </div>
 
         {format === 'FORMAT_2' && (
-           <div className="mt-4 text-[8.5pt] leading-tight opacity-70 italic">
+           <div className="mt-2 text-[8pt] leading-tight opacity-70 italic">
              <p>Keterangan: *) rata-rata nilai murid yang sama dengan nilai yang akan ditulis dalam Transkrip Nilai Ijazah.</p>
            </div>
         )}
-
-        <style dangerouslySetInnerHTML={{ __html: `
-          @media print {
-            @page {
-              size: ${format === 'FORMAT_1' ? 'A4 portrait' : '215mm 330mm portrait'};
-              margin: 0 !important;
-            }
-            
-            html, body {
-              margin: 0 !important;
-              padding: 0 !important;
-              background: white !important;
-              height: auto !important;
-              overflow: visible !important;
-            }
-
-            body * {
-              visibility: hidden !important;
-            }
-
-            .skl-printable-area, 
-            .skl-printable-area * {
-              visibility: visible !important;
-            }
-
-            .skl-printable-area {
-              visibility: visible !important;
-              position: absolute !important;
-              top: 0 !important;
-              left: 0 !important;
-              width: ${format === 'FORMAT_1' ? '210mm' : '215mm'} !important;
-              min-height: ${format === 'FORMAT_1' ? '297mm' : '330mm'} !important;
-              display: block !important;
-              background: white !important;
-              padding-top: ${paperStyle.paddingTop} !important;
-              padding-bottom: ${paperStyle.paddingBottom} !important;
-              padding-left: ${paperStyle.paddingLeft} !important;
-              padding-right: ${paperStyle.paddingRight} !important;
-              transform: scale(${scale}) !important;
-              transform-origin: top center !important;
-              box-sizing: border-box !important;
-              margin: 0 !important;
-              border: none !important;
-              box-shadow: none !important;
-              break-after: avoid !important;
-            }
-
-            /* Fix blank pages caused by outer containers */
-            #root, #root > div, main, .App, .print-modal-root {
-              visibility: visible !important;
-              display: block !important;
-              position: static !important;
-              height: auto !important;
-              min-height: 0 !important;
-              overflow: visible !important;
-              margin: 0 !important;
-              padding: 0 !important;
-            }
-
-            .print-hide, 
-            button, 
-            aside, 
-            header, 
-            nav, 
-            footer,
-            .bg-black\\/60,
-            .backdrop-blur-sm {
-              display: none !important;
-            }
-          }
-
-          .skl-printable-area {
-            font-family: "Times New Roman", Times, serif;
-            box-sizing: border-box;
-            background: white;
-            line-height: normal;
-          }
-          .tabular-nums {
-            font-variant-numeric: tabular-nums;
-          }
-        `}} />
       </div>
     </div>
   );

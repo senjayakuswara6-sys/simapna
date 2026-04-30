@@ -136,7 +136,7 @@ export default function App() {
   return (
     <div className="fixed inset-0 bg-slate-50 flex overflow-hidden print:static print:block print:overflow-visible print:bg-white simapna-app">
       {/* Desktop Sidebar - Strictly hidden on mobile */}
-      <aside className="w-72 bg-white border-r border-slate-200 hidden md:flex flex-col shrink-0 print:hidden">
+      <aside className="w-72 bg-white border-r border-slate-200 hidden md:flex flex-col shrink-0 print:hidden print-hide">
         <div className="p-6 flex items-center gap-3 border-b border-slate-100 min-h-[88px]">
           <div className="bg-blue-600 p-1.5 rounded-lg shadow-lg shadow-blue-100 shrink-0">
             {settings?.secondaryLogoUrl ? (
@@ -207,7 +207,7 @@ export default function App() {
       {/* Main Content */}
        <main className="flex-1 flex flex-col min-w-0 bg-slate-50 relative h-full print:block print:h-auto print:static print:bg-white">
          {/* Mobile Header (Fixed) */}
-         <header className="md:hidden sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-slate-200 p-4 flex items-center justify-between shadow-sm h-16 shrink-0 print:hidden">
+         <header className="md:hidden sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-slate-200 p-4 flex items-center justify-between shadow-sm h-16 shrink-0 print:hidden print-hide">
            <div className="flex items-center gap-2 overflow-hidden">
              <div className="bg-blue-600 p-1.5 rounded-lg shadow-md shadow-blue-100 shrink-0">
                 {settings?.secondaryLogoUrl ? (
@@ -257,7 +257,7 @@ export default function App() {
          </div>
 
          {/* Mobile Navigation (Fixed Footer) */}
-         <nav className="md:hidden fixed bottom-4 left-4 right-4 z-50 bg-slate-900/90 backdrop-blur-xl rounded-2xl border border-white/10 flex justify-around items-center p-3 shadow-2xl overflow-hidden">
+         <nav className="md:hidden fixed bottom-4 left-4 right-4 z-50 bg-slate-900/90 backdrop-blur-xl rounded-2xl border border-white/10 flex justify-around items-center p-3 shadow-2xl overflow-hidden print-hide">
            <MobileNavLink 
              icon={<LayoutDashboard />} 
              label="Beranda" 
