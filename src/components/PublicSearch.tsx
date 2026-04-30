@@ -554,7 +554,12 @@ export default function PublicSearch() {
 
               {/* Hidden preview for printing */}
               <div className="hidden print:block fixed inset-0 z-[100] bg-white">
-                 <SKLPreview student={student} isAdminView={false} forceShowHeader={true} />
+                 <SKLPreview 
+                   student={student} 
+                   isAdminView={false} 
+                   forceShowHeader={true} 
+                   forcedShowStamp={settings?.publicShowStamp ?? true} 
+                 />
               </div>
             </motion.div>
           )}

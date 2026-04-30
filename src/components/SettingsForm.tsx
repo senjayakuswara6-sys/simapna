@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db, handleFirestoreError } from '../lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { SchoolSettings } from '../types';
-import { Save, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Save, CheckCircle2, AlertCircle, Printer } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export default function SettingsForm() {
@@ -433,6 +433,29 @@ export default function SettingsForm() {
                     <span className="font-bold">FORMAT 2 (Tabel Mapel & F4)</span>
                     <span className="text-[10px] opacity-80">Layout F4 untuk kertas ber-kop (pre-printed). Menggunakan tabel nilai terstruktur (Umum/Pilihan/Mulok).</span>
                   </button>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-blue-100">
+                <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-slate-200">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-600 p-2 rounded-lg text-white">
+                      <Printer className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-800">Tampilkan Stempel di Publik</p>
+                      <p className="text-xs text-slate-500">Siswa dapat melihat stempel & TTD saat cek hasil / download</p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only peer"
+                      checked={settings.publicShowStamp ?? true}
+                      onChange={e => setSettings({ ...settings, publicShowStamp: e.target.checked })}
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
                 </div>
               </div>
 

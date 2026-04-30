@@ -234,7 +234,7 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
       >
         {/* Header - Shown if digital or FORMAT_1 */}
         {showHeader && (
-          <div className="mb-6 w-full">
+          <div className="mb-2 w-full">
             {settings.logoUrl ? (
               <img src={settings.logoUrl} alt="Kop Surat" className="w-full object-contain" referrerPolicy="no-referrer" />
             ) : (

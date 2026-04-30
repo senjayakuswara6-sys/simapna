@@ -40,6 +40,7 @@ export interface SchoolSettings {
   headmasterName: string;
   headmasterNip: string;
   headmasterIdType?: 'NIP' | 'NPA' | 'NIY' | 'NIK' | string;
+  publicShowStamp?: boolean;
   academicYear: string;
   graduationDate: string;
   plenaryDate: string;
