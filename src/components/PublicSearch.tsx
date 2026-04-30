@@ -5,6 +5,7 @@ import { Student, SchoolSettings } from '../types';
 import { Search, GraduationCap, Printer, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import SKLPreview from './SKLPreview';
+import confetti from 'canvas-confetti';
 
 export default function PublicSearch() {
   const [nisn, setNisn] = useState('');
@@ -147,12 +148,34 @@ export default function PublicSearch() {
       const directDoc = await getDoc(doc(db, 'students', cleanNisn));
       
       if (directDoc.exists()) {
-        const data = { id: directDoc.id, ...directDoc.data() } as Student;
-        setStudent(data);
-        setCelebrating(true);
-        setCountdown(10); // Reduced delay for direct verification
+        const studentData = { id: directDoc.id, ...directDoc.data() } as Student;
+        setStudent(studentData);
+        
+        // Trigger celebration if graduated
+        if (studentData.status === 'LULUS') {
+          setCelebrating(true);
+          setCountdown(settings?.countdownSeconds || 10);
+          
+          // Confetti burst
+          const duration = 5 * 1000;
+          const animationEnd = Date.now() + duration;
+          const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+          const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+          const interval: any = setInterval(() => {
+            const timeLeft = animationEnd - Date.now();
+            if (timeLeft <= 0) return clearInterval(interval);
+
+            const particleCount = 50 * (timeLeft / duration);
+            confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+            confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+          }, 250);
+        } else {
+          setShowResult(true);
+        }
       } else {
-        // 2. Fallback to query (for legacy auto-generated IDs)
+        // 2. Fallback to query
         const q = query(
           collection(db, 'students'), 
           where('nisn', '==', cleanNisn), 
@@ -163,10 +186,22 @@ export default function PublicSearch() {
         if (snapshot.empty) {
           setError('Data siswa tidak ditemukan. Pastikan NISN yang dimasukkan benar.');
         } else {
-          const data = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Student;
-          setStudent(data);
-          setCelebrating(true);
-          setCountdown(15); 
+          const studentData = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Student;
+          setStudent(studentData);
+          
+          if (studentData.status === 'LULUS') {
+            setCelebrating(true);
+            setCountdown(10);
+            
+            // Confetti burst
+            confetti({
+              particleCount: 150,
+              spread: 70,
+              origin: { y: 0.6 }
+            });
+          } else {
+            setShowResult(true);
+          }
         }
       }
     } catch (err: any) {
@@ -426,62 +461,100 @@ export default function PublicSearch() {
               key="result"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white p-8 rounded-[2.5rem] shadow-2xl shadow-slate-200 ring-1 ring-slate-100 text-left space-y-8 relative overflow-hidden"
+              className="space-y-6"
             >
-              <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
-                <GraduationCap className="w-24 h-24 text-slate-900" />
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => {
+                    setStudent(null);
+                    setNisn('');
+                    setShowResult(false);
+                  }}
+                  className="text-slate-500 hover:text-blue-600 font-bold flex items-center gap-2 transition-colors"
+                >
+                  <Search className="w-4 h-4 rotate-180" />
+                  Cari Lagi
+                </button>
               </div>
 
-              <div className="space-y-6">
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Nama Lengkap</p>
-                  <p className="text-2xl md:text-3xl font-black text-slate-900 leading-tight">{student.name}</p>
+              <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl shadow-slate-200 ring-1 ring-slate-100 text-left space-y-8 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+                  <GraduationCap className="w-24 h-24 text-slate-900" />
                 </div>
 
-                <div className="flex flex-wrap gap-8">
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">NISN</p>
-                    <p className="text-lg font-bold text-slate-700">{student.nisn}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">NIS</p>
-                    <p className="text-lg font-bold text-slate-700">{student.nis}</p>
-                  </div>
-                </div>
-
-                <div className="pt-6 border-t border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Status Kelulusan</p>
-                    {student.status === 'LULUS' ? (
-                      <div className="inline-flex items-center gap-2 px-5 py-2 bg-emerald-50 text-emerald-700 rounded-full text-sm font-black ring-1 ring-emerald-100">
-                        <CheckCircle2 className="w-4 h-4" />
-                        LULUS
+                <div className="space-y-8">
+                  {/* Status Banner */}
+                  <div className={`p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 border-2 transition-all ${
+                    student.status === 'LULUS' 
+                    ? 'bg-emerald-50 border-emerald-100 text-emerald-900 shadow-emerald-50 shadow-lg' 
+                    : 'bg-rose-50 border-rose-100 text-rose-900 shadow-rose-50 shadow-lg'
+                  }`}>
+                    <div className="flex items-center gap-4">
+                      {student.status === 'LULUS' ? (
+                        <div className="bg-emerald-500 p-3 rounded-2xl shadow-lg shadow-emerald-100">
+                          <CheckCircle2 className="w-8 h-8 text-white" />
+                        </div>
+                      ) : (
+                        <div className="bg-rose-500 p-3 rounded-2xl shadow-lg shadow-rose-100">
+                          <XCircle className="w-8 h-8 text-white" />
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Status Kelulusan</p>
+                        <h2 className="text-4xl font-black italic">{student.status}</h2>
                       </div>
-                    ) : (
-                      <div className="inline-flex items-center gap-2 px-5 py-2 bg-rose-50 text-rose-700 rounded-full text-sm font-black ring-1 ring-rose-100">
-                        <XCircle className="w-4 h-4" />
-                        TIDAK LULUS
-                      </div>
-                    )}
-                  </div>
-                  
-                  <button 
-                    onClick={handlePrint}
-                    className="flex lg:flex items-center justify-center gap-3 bg-slate-900 hover:bg-slate-800 text-white px-8 py-5 rounded-2xl font-bold shadow-xl shadow-slate-200 transition-all active:scale-95 group shrink-0"
-                  >
-                    <Printer className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                    Download / Cetak SKL
-                  </button>
-                </div>
+                    </div>
 
-                <p className="text-center text-[10px] text-slate-400 font-medium">
-                  *Gunakan opsi "Simpan sebagai PDF" saat mencetak di HP
-                </p>
+                    <div className="flex items-center gap-6 divide-x divide-slate-200">
+                      <div className="px-6 text-center">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Rata-rata</p>
+                        <p className="text-2xl font-black text-slate-900">{student.averageScore.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      </div>
+                      <div className="pl-6 text-center">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Tgl. Lulus</p>
+                        <p className="text-lg font-bold text-slate-700">
+                          {settings?.graduationDate ? new Date(settings.graduationDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Student Details Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-2">
+                    <div className="space-y-6">
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Nama Lengkap</p>
+                        <p className="text-2xl font-black text-slate-900 leading-tight uppercase">{student.name}</p>
+                      </div>
+                      <div className="flex gap-12">
+                        <div>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">NISN</p>
+                          <p className="text-lg font-bold text-slate-700 tabular-nums tracking-wider">{student.nisn}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Kelas</p>
+                          <p className="text-lg font-bold text-slate-700">{student.className}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col justify-end">
+                      <button 
+                        onClick={handlePrint}
+                        className="flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 rounded-3xl font-black shadow-2xl shadow-blue-200 transition-all active:scale-95 group w-full"
+                      >
+                        <Printer className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                        UNDUH / CETAK SKL
+                      </button>
+                      <p className="mt-3 text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">Format Resmi Sekolah</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Hidden preview for printing */}
               <div className="hidden print:block fixed inset-0 z-[100] bg-white">
-                 <SKLPreview student={student} isAdminView={false} />
+                 <SKLPreview student={student} isAdminView={false} forceShowHeader={true} />
               </div>
             </motion.div>
           )}

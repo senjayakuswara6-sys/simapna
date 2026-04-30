@@ -9,9 +9,10 @@ interface SKLPreviewProps {
   student: Student;
   isAdminView?: boolean;
   forcedShowStamp?: boolean;
+  forceShowHeader?: boolean;
 }
 
-export default function SKLPreview({ student, isAdminView = false, forcedShowStamp }: SKLPreviewProps) {
+export default function SKLPreview({ student, isAdminView = false, forcedShowStamp, forceShowHeader = false }: SKLPreviewProps) {
   const [settings, setSettings] = useState<SchoolSettings | null>(null);
   const [localShowStamp, setLocalShowStamp] = useState(true);
   const [allSubjects, setAllSubjects] = useState<Subject[]>([]);
@@ -75,16 +76,18 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
   };
 
   const scale = (settings.printScale || 100) / 100;
-  const topMargin = format === 'FORMAT_2' ? (settings.f4TopMargin || 5) : 1.5;
-  const bottomMargin = format === 'FORMAT_2' ? (settings.f4BottomMargin || 1) : 1.5;
-  const leftMargin = format === 'FORMAT_2' ? (settings.f4LeftMargin || 1.5) : 1.5;
-  const rightMargin = format === 'FORMAT_2' ? (settings.f4RightMargin || 1.5) : 1.5;
+  const showHeader = format === 'FORMAT_1' || forceShowHeader;
+  
+  const effectiveTopMargin = (format === 'FORMAT_2' && !forceShowHeader) ? (settings.f4TopMargin || 5) : 1.5;
+  const effectiveBottomMargin = (format === 'FORMAT_2' && !forceShowHeader) ? (settings.f4BottomMargin || 1) : 1.5;
+  const effectiveLeftMargin = (format === 'FORMAT_2' && !forceShowHeader) ? (settings.f4LeftMargin || 1.5) : 1.5;
+  const effectiveRightMargin = (format === 'FORMAT_2' && !forceShowHeader) ? (settings.f4RightMargin || 1.5) : 1.5;
 
   const paperStyle = {
-    paddingTop: `${topMargin}cm`,
-    paddingBottom: `${bottomMargin}cm`,
-    paddingLeft: `${leftMargin}cm`,
-    paddingRight: `${rightMargin}cm`,
+    paddingTop: `${effectiveTopMargin}cm`,
+    paddingBottom: `${effectiveBottomMargin}cm`,
+    paddingLeft: `${effectiveLeftMargin}cm`,
+    paddingRight: `${effectiveRightMargin}cm`,
     // Use zoom for preview, but we'll use a different strategy for print
     zoom: scale,
   };
@@ -144,12 +147,12 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
             break-after: page !important;
             page-break-after: always !important;
             page-break-inside: avoid !important;
-            width: ${format === 'FORMAT_1' ? '210mm' : '215mm'} !important;
-            height: ${format === 'FORMAT_1' ? '297mm' : '330mm'} !important;
-            padding-top: ${topMargin}cm !important;
-            padding-bottom: ${bottomMargin}cm !important;
-            padding-left: ${leftMargin}cm !important;
-            padding-right: ${rightMargin}cm !important;
+            width: ${showHeader ? '210mm' : '215mm'} !important;
+            height: ${showHeader ? '297mm' : '330mm'} !important;
+            padding-top: ${paperStyle.paddingTop} !important;
+            padding-bottom: ${paperStyle.paddingBottom} !important;
+            padding-left: ${paperStyle.paddingLeft} !important;
+            padding-right: ${paperStyle.paddingRight} !important;
             zoom: ${scale} !important;
             box-sizing: border-box !important;
             background: white !important;
@@ -223,19 +226,19 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
       {/* PAPER CONTAINER */}
       <div 
         className={`bg-white shadow-2xl mx-auto text-black font-['Times_New_Roman',_serif] text-[11pt] print:shadow-none print:m-0 skl-printable-area ${
-          format === 'FORMAT_1' 
+          showHeader
           ? 'w-[210mm] min-h-[297mm]' 
           : 'w-[215mm] min-h-[330mm]' // F4 is 215x330mm
         }`}
         style={paperStyle}
       >
-        {/* Header - Format 1 only */}
-        {format === 'FORMAT_1' && (
+        {/* Header - Shown if digital or FORMAT_1 */}
+        {showHeader && (
           <div className="mb-6 w-full">
             {settings.logoUrl ? (
               <img src={settings.logoUrl} alt="Kop Surat" className="w-full object-contain" referrerPolicy="no-referrer" />
             ) : (
-              <div className="w-full h-32 flex items-center justify-center border-2 border-dashed border-slate-200 bg-slate-50 text-slate-400">
+              <div className="w-full h-32 flex items-center justify-center border-2 border-dashed border-slate-200 bg-slate-50 text-slate-400 print:hidden">
                 Belum ada Kop Surat diunggah di Pengaturan
               </div>
             )}
