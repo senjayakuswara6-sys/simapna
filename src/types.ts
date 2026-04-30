@@ -39,6 +39,7 @@ export interface SchoolSettings {
   regency: string;
   headmasterName: string;
   headmasterNip: string;
+  headmasterIdType?: 'NIP' | 'NPA' | 'NIY' | 'NIK' | string;
   academicYear: string;
   graduationDate: string;
   plenaryDate: string;

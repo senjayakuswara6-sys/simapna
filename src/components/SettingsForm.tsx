@@ -13,6 +13,7 @@ export default function SettingsForm() {
     regency: '',
     headmasterName: '',
     headmasterNip: '',
+    headmasterIdType: 'NIP',
     academicYear: '2024/2025',
     graduationDate: new Date().toISOString().split('T')[0],
     plenaryDate: new Date().toISOString().split('T')[0],
@@ -329,15 +330,32 @@ export default function SettingsForm() {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">NIP/NPA</label>
-            <input
-              type="text"
-              required
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-              value={settings.headmasterNip || ''}
-              onChange={e => setSettings({ ...settings, headmasterNip: e.target.value })}
-            />
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-1">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Tipe ID (NIP/NPA/NIY)</label>
+              <select
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                value={settings.headmasterIdType || 'NIP'}
+                onChange={e => setSettings({ ...settings, headmasterIdType: e.target.value })}
+              >
+                <option value="NIP">NIP (PNS)</option>
+                <option value="NPA">NPA (PGRI)</option>
+                <option value="NIY">NIY (Yayasan)</option>
+                <option value="NIK">NIK (Personal)</option>
+                <option value="NIP/NPA">NIP/NPA</option>
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Nomor Identitas</label>
+              <input
+                type="text"
+                required
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                value={settings.headmasterNip || ''}
+                onChange={e => setSettings({ ...settings, headmasterNip: e.target.value })}
+              />
+            </div>
           </div>
 
           <div>

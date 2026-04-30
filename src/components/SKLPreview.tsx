@@ -390,7 +390,7 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
         )}
 
             <p className="font-bold underline text-[11pt] relative z-20 leading-none">{settings.headmasterName}</p>
-            <p className="text-[10pt] relative z-20 leading-none mt-1">Pembina {settings.headmasterNip}</p>
+            <p className="text-[10pt] relative z-20 leading-none mt-1">{settings.headmasterIdType || 'NIP'}. {settings.headmasterNip}</p>
           </div>
         </div>
 
