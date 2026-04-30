@@ -80,8 +80,8 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
   
   const effectiveTopMargin = (format === 'FORMAT_2' && !forceShowHeader) ? (settings.f4TopMargin || 5) : 0.5;
   const effectiveBottomMargin = (format === 'FORMAT_2' && !forceShowHeader) ? (settings.f4BottomMargin || 1) : 1;
-  const effectiveLeftMargin = (format === 'FORMAT_2' && !forceShowHeader) ? (settings.f4LeftMargin || 1.5) : 1.5;
-  const effectiveRightMargin = (format === 'FORMAT_2' && !forceShowHeader) ? (settings.f4RightMargin || 1.5) : 1.5;
+  const effectiveLeftMargin = (format === 'FORMAT_2' && !forceShowHeader) ? (settings.f4LeftMargin || 1.5) : 1.2;
+  const effectiveRightMargin = (format === 'FORMAT_2' && !forceShowHeader) ? (settings.f4RightMargin || 1.5) : 1.2;
 
   const paperStyle = {
     paddingTop: `${effectiveTopMargin}cm`,
@@ -246,7 +246,7 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
         )}
 
         {/* Title */}
-        <div className="text-center mb-1 space-y-0">
+        <div className="text-center mb-6 space-y-0">
           <h2 className="text-[13pt] font-bold underline uppercase tracking-tight leading-none m-0">Surat Keterangan Lulus</h2>
           <p className="font-bold text-[11pt] m-0 leading-none mt-1">Nomor : {student.sklNumber || settings.letterNumberTemplate}</p>
         </div>
@@ -291,12 +291,12 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
         {format === 'FORMAT_2' ? (
           <>
             <p className="mb-0.5 text-[10pt]">Dengan nilai sebagai berikut :</p>
-            <table className="w-full border-collapse border border-black mb-1 text-[9.5pt] skl-table">
+            <table className="w-full border-collapse border border-black mb-1 text-[9.5pt] skl-table table-fixed">
               <thead className="bg-slate-50/10">
                 <tr className="h-[20px]">
-                  <th className="border border-black px-1 py-0 w-8 text-center italic">No</th>
-                  <th className="border border-black px-2 py-0 text-center uppercase text-[9pt]">Mata Pelajaran</th>
-                  <th className="border border-black px-2 py-0 w-20 text-center">Nilai</th>
+                  <th className="border border-black px-1 py-0 w-[40px] text-center italic">No</th>
+                  <th className="border border-black px-4 py-0 text-left">MATA PELAJARAN</th>
+                  <th className="border border-black px-1 py-0 w-[80px] text-center italic">Nilai</th>
                 </tr>
               </thead>
               <tbody>
