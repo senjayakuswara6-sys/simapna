@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../lib/firebase';
+import { db, handleFirestoreError } from '../lib/firebase';
 import { collection, query, getDocs, getCountFromServer } from 'firebase/firestore';
 import { Users, FileCheck, FileX, TrendingUp } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -14,21 +14,25 @@ export default function Dashboard({ onNavigateStudents }: { onNavigateStudents: 
 
   useEffect(() => {
     const fetchStats = async () => {
-      const q = query(collection(db, 'students'));
-      const snapshot = await getDocs(q);
-      const data = snapshot.docs.map(doc => doc.data());
-      
-      const total = data.length;
-      const lulusCount = data.filter(s => s.status === 'LULUS').length;
-      const tidakLulusCount = total - lulusCount;
-      const avg = total > 0 ? data.reduce((acc, curr) => acc + (curr.averageScore || 0), 0) / total : 0;
+      try {
+        const q = query(collection(db, 'students'));
+        const snapshot = await getDocs(q);
+        const data = snapshot.docs.map(doc => doc.data());
+        
+        const total = data.length;
+        const lulusCount = data.filter(s => s.status === 'LULUS').length;
+        const tidakLulusCount = total - lulusCount;
+        const avg = total > 0 ? data.reduce((acc, curr) => acc + (curr.averageScore || 0), 0) / total : 0;
 
-      setStats({
-        total,
-        lulus: lulusCount,
-        tidakLulus: tidakLulusCount,
-        average: parseFloat(avg.toFixed(2))
-      });
+        setStats({
+          total,
+          lulus: lulusCount,
+          tidakLulus: tidakLulusCount,
+          average: parseFloat(avg.toFixed(2))
+        });
+      } catch (error) {
+        handleFirestoreError(error, 'get', 'students');
+      }
     };
 
     fetchStats();

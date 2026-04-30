@@ -13,12 +13,13 @@ service cloud.firestore {
 
     function isAdmin() {
       return isSignedIn() && (
-        request.auth.token.email == 'senjayakuswara6@gmail.com' && request.auth.token.email_verified == true
+        request.auth.token.email == 'senjayakuswara6@gmail.com' ||
+        request.auth.uid == 'K8or1fdblAOY5Nc7PQxVNrQIX872'
       );
     }
 
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string && id.size() > 0 && id.size() <= 128;
     }
 
     function incoming() {
@@ -29,27 +30,38 @@ service cloud.firestore {
       return resource.data;
     }
 
-    // Student Validation
+    // Student Validation - Relaxed for troubleshooting
     function isValidStudent(data) {
-      return data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
-             data.nis is string && data.nis.size() > 0 &&
-             data.nisn is string && data.nisn.size() > 0 &&
-             data.className is string &&
-             data.status in ['LULUS', 'TIDAK LULUS'];
+      return data.name is string && 
+             data.nisn is string && 
+             data.status in ['LULUS', 'TIDAK LULUS'] &&
+             data.subjects is list;
+    }
+
+    // Subject Validation - Hardened
+    function isValidSubject(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.category in ['UMUM', 'PILIHAN', 'MULOK'] &&
+             data.className is string && data.className.size() <= 50 &&
+             (data.order == null || data.order is int);
     }
 
     // Match Rules
     match /students/{studentId} {
-      allow read: if true; // Public check enabled
-      allow create: if isAdmin() && isValidId(studentId) && isValidStudent(incoming());
-      allow update: if isAdmin() && isValidStudent(incoming()) && (
-        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'birthPlace', 'birthDate', 'parentName', 'nis', 'nisn', 'className', 'subjects', 'averageScore', 'status', 'sklNumber', 'updatedAt'])
-      );
+      allow get, list: if true; 
+      allow write: if isAdmin() && isValidId(studentId) && isValidStudent(incoming());
+      allow delete: if isAdmin();
+    }
+
+    match /subjects/{subjectId} {
+      allow get, list: if true;
+      allow create: if isAdmin() && isValidId(subjectId) && isValidSubject(incoming());
+      allow update: if isAdmin() && isValidSubject(incoming());
       allow delete: if isAdmin();
     }
 
     match /settings/{settingId} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
   }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../lib/firebase';
+import { db, handleFirestoreError } from '../lib/firebase';
 import { collection, query, where, getDocs, limit, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { Student, SchoolSettings } from '../types';
 import { Search, GraduationCap, Printer, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
@@ -35,14 +35,20 @@ export default function PublicSearch() {
         });
       }
       setLoadingSettings(false);
+    }, (err) => {
+      handleFirestoreError(err, 'get', 'settings/general');
     });
 
     const unsubLogo = onSnapshot(doc(db, 'settings', 'logo_header'), (snap) => {
       if (snap.exists()) setSettings(prev => ({ ...(prev || {}), logoUrl: snap.data().url } as SchoolSettings));
+    }, (err) => {
+      handleFirestoreError(err, 'get', 'settings/logo_header');
     });
 
     const unsubUILogo = onSnapshot(doc(db, 'settings', 'logo_ui'), (snap) => {
       if (snap.exists()) setSettings(prev => ({ ...(prev || {}), secondaryLogoUrl: snap.data().url } as SchoolSettings));
+    }, (err) => {
+      handleFirestoreError(err, 'get', 'settings/logo_ui');
     });
 
     // Check for verification URL or query param
@@ -164,7 +170,7 @@ export default function PublicSearch() {
         }
       }
     } catch (err: any) {
-      console.error(err);
+      handleFirestoreError(err, 'get', 'students/search');
       setError('Gagal mencari data. Pastikan koneksi internet stabil.');
     } finally {
       setSearching(false);

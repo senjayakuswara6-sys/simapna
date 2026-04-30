@@ -25,9 +25,13 @@ export default function StudentTable() {
 
   useEffect(() => {
     const fetchSettings = async () => {
-      const docSnap = await getDoc(doc(db, 'settings', 'general'));
-      if (docSnap.exists()) {
-        setSettings(docSnap.data());
+      try {
+        const docSnap = await getDoc(doc(db, 'settings', 'general'));
+        if (docSnap.exists()) {
+          setSettings(docSnap.data());
+        }
+      } catch (error) {
+        handleFirestoreError(error, 'get', 'settings/general');
       }
     };
     fetchSettings();
@@ -56,6 +60,8 @@ export default function StudentTable() {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Student));
       setStudents(data);
       setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, 'get', 'students');
     });
     return () => unsubscribe();
   }, []);
@@ -88,24 +94,45 @@ export default function StudentTable() {
     }
   };
 
-  const handleExport = () => {
-    const exportData = filteredAndSortedStudents.map(s => ({
-      'Nama': s.name,
-      'NIS': s.nis,
-      'NISN': s.nisn,
-      'Tempat Lahir': s.birthPlace,
-      'Tanggal Lahir': s.birthDate,
-      'Nama Orang Tua': s.parentName,
-      'Kelas': s.className || '',
-      'Status': s.status,
-      'Rata-rata Nilai': s.averageScore,
-      'Mata Pelajaran/Peminatan': Array.isArray(s.subjects) ? s.subjects.join(', ') : Object.keys(s.subjects).join(', ')
-    }));
+  const handleExport = (format: 'A4' | 'F4') => {
+    // Collect all unique subject names across filtered students
+    const allSubjectNames = new Set<string>();
+    filteredAndSortedStudents.forEach(s => {
+      s.subjects?.forEach(subj => {
+        if (subj.subjectName) allSubjectNames.add(subj.subjectName);
+      });
+    });
+
+    const subjectHeaders = Array.from(allSubjectNames).sort();
+
+    const exportData = filteredAndSortedStudents.map(s => {
+      const row: any = {
+        'Nama': s.name,
+        'NIS': s.nis,
+        'NISN': s.nisn,
+        'Tempat Lahir': s.birthPlace,
+        'Tanggal Lahir': s.birthDate,
+        'Nama Orang Tua': s.parentName,
+        'Kelas': s.className || '',
+        'Status': s.status,
+      };
+
+      if (format === 'F4') {
+        // Add scores for each subject
+        subjectHeaders.forEach(header => {
+          const subjScore = s.subjects?.find(subj => subj.subjectName === header);
+          row[header] = subjScore ? subjScore.score : 0;
+        });
+      }
+
+      row['Rata-rata Nilai'] = s.averageScore;
+      return row;
+    });
 
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Data Siswa");
-    XLSX.writeFile(wb, `Data_Siswa_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(wb, `Data_Siswa_${format}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   return (
@@ -123,13 +150,28 @@ export default function StudentTable() {
             <Printer className="w-4 h-4" />
             Cetak Semua
           </button>
-          <button 
-            onClick={handleExport}
-            className="flex items-center gap-2 bg-slate-600 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm shadow-sm"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            Eksport Excel
-          </button>
+          <div className="relative group/export inline-block">
+            <button 
+              className="flex items-center gap-2 bg-slate-600 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm shadow-sm"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              Eksport Excel
+            </button>
+            <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-200 opacity-0 invisible group-hover/export:opacity-100 group-hover/export:visible transition-all z-20 overflow-hidden">
+              <button 
+                onClick={() => handleExport('A4')}
+                className="w-full text-left px-4 py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 border-b border-slate-100 transition-colors"
+              >
+                Format A4 (Data Saja)
+              </button>
+              <button 
+                onClick={() => handleExport('F4')}
+                className="w-full text-left px-4 py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                Format F4 (Data + Nilai)
+              </button>
+            </div>
+          </div>
           <button 
             onClick={() => setShowImport(true)}
             className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm shadow-sm"
@@ -234,7 +276,7 @@ export default function StudentTable() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-sm font-bold text-slate-800">{student.averageScore}</p>
+                      <p className="text-sm font-bold text-slate-800">{student.averageScore.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -314,7 +356,7 @@ export default function StudentTable() {
                     className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm"
                   >
                     <Printer className="w-4 h-4" />
-                    Cetak A4
+                    {settings?.sklFormat === 'FORMAT_2' ? 'Cetak F4' : 'Cetak A4'}
                   </button>
                   <button onClick={() => setPreviewingStudent(null)} className="p-2 hover:bg-slate-100 rounded-full">
                     <X className="w-5 h-5" />

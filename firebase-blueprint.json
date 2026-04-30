@@ -14,8 +14,15 @@
         "className": { "type": "string", "description": "Kelas (XII-1, XII-2, XII-3)" },
         "subjects": { 
           "type": "array", 
-          "items": { "type": "string" },
-          "description": "Daftar nama mata pelajaran" 
+          "items": { 
+            "type": "object",
+            "properties": {
+              "subjectName": { "type": "string" },
+              "score": { "type": "number" },
+              "category": { "type": "string" }
+            }
+          },
+          "description": "Daftar nilai mata pelajaran terstruktur" 
         },
         "averageScore": { "type": "number", "description": "Rata-rata nilai akhir" },
         "status": { "type": "string", "enum": ["LULUS", "TIDAK LULUS"], "description": "Status kelulusan" },
@@ -23,6 +30,18 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name", "nis", "nisn", "status"]
+    },
+    "Subject": {
+      "title": "Subject",
+      "description": "Daftar mata pelajaran per kategori dan kelas",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string", "enum": ["UMUM", "PILIHAN", "MULOK"] },
+        "className": { "type": "string", "description": "XII-1, XII-2, atau SEMUA" },
+        "order": { "type": "number" }
+      },
+      "required": ["name", "category", "className"]
     },
     "SchoolSettings": {
       "title": "School Settings",
@@ -40,7 +59,9 @@
         "plenaryDate": { "type": "string", "description": "Tanggal Rapat Pleno Dewan Guru" },
         "letterNumberTemplate": { "type": "string" },
         "isCountdownActive": { "type": "boolean" },
-        "countdownTargetDate": { "type": "string", "description": "ISO DateTime string for countdown target" }
+        "countdownTargetDate": { "type": "string", "description": "ISO DateTime string for countdown target" },
+        "sklFormat": { "type": "string", "enum": ["FORMAT_1", "FORMAT_2"] },
+        "f4TopMargin": { "type": "number", "description": "Jarak kosong untuk kop surat pre-printed (cm)" }
       }
     },
     "Asset": {
@@ -56,6 +77,10 @@
     "students/{studentId}": {
       "schema": "Student",
       "description": "Koleksi data siswa"
+    },
+    "subjects/{subjectId}": {
+      "schema": "Subject",
+      "description": "Koleksi daftar mata pelajaran"
     },
     "settings/general": {
       "schema": "SchoolSettings",

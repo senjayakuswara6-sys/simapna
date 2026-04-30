@@ -23,7 +23,9 @@ export default function SettingsForm() {
       const now = new Date();
       now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
       return now.toISOString().slice(0, 16);
-    })()
+    })(),
+    sklFormat: 'FORMAT_1',
+    f4TopMargin: 5
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -377,6 +379,62 @@ export default function SettingsForm() {
               onChange={e => setSettings({ ...settings, letterNumberTemplate: e.target.value })}
               placeholder="Contoh: 243/SMA-PGRI/1.6/M/2025"
             />
+          </div>
+
+          <div className="col-span-1 md:col-span-2 pt-4 border-t border-slate-100">
+            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </span>
+              Pengaturan Format SKL & Kertas
+            </h3>
+            
+            <div className="bg-blue-50/50 rounded-xl p-6 space-y-6 border border-blue-100">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-3">Format SKL Default</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setSettings({ ...settings, sklFormat: 'FORMAT_1' })}
+                    className={`p-4 rounded-xl border-2 transition-all text-left flex flex-col gap-2 ${settings.sklFormat === 'FORMAT_1' ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-300'}`}
+                  >
+                    <span className="font-bold">FORMAT 1 (Versi 1)</span>
+                    <span className="text-[10px] opacity-80">Layout standar A4 dengan Kop Surat elektronik. Menggunakan daftar mapel sederhana.</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSettings({ ...settings, sklFormat: 'FORMAT_2' })}
+                    className={`p-4 rounded-xl border-2 transition-all text-left flex flex-col gap-2 ${settings.sklFormat === 'FORMAT_2' ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-300'}`}
+                  >
+                    <span className="font-bold">FORMAT 2 (Tabel Mapel & F4)</span>
+                    <span className="text-[10px] opacity-80">Layout F4 untuk kertas ber-kop (pre-printed). Menggunakan tabel nilai terstruktur (Umum/Pilihan/Mulok).</span>
+                  </button>
+                </div>
+              </div>
+
+              {settings.sklFormat === 'FORMAT_2' && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-slate-700 italic">Jarak Kosong Atas (Top Margin) untuk Kertas Ber-kop (F4)</label>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="range"
+                      min="0"
+                      max="15"
+                      step="0.5"
+                      className="flex-1"
+                      value={settings.f4TopMargin || 5}
+                      onChange={e => setSettings({ ...settings, f4TopMargin: parseFloat(e.target.value) })}
+                    />
+                    <span className="bg-white px-4 py-2 border border-slate-200 rounded-lg font-bold text-blue-600 min-w-[80px] text-center">
+                      {settings.f4TopMargin || 5} cm
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400">Atur jarak ini agar teks SKL tidak menimpa kop surat yang sudah ada di kertas fisik Anda.</p>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="col-span-1 md:col-span-2 pt-4 border-t border-slate-100">

@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { auth, signInWithGoogle, db } from './lib/firebase';
+import { auth, signInWithGoogle, db, handleFirestoreError } from './lib/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { GraduationCap, LogIn, LogOut, Users, Settings as SettingsIcon, FileText, LayoutDashboard, Plus, Download } from 'lucide-react';
+import { GraduationCap, LogIn, LogOut, Users, Settings as SettingsIcon, FileText, LayoutDashboard, Plus, Download, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import StudentTable from './components/StudentTable';
 import SettingsForm from './components/SettingsForm';
 import Dashboard from './components/Dashboard';
 import PublicSearch from './components/PublicSearch';
+import SubjectManager from './components/SubjectManager';
 
 interface SchoolSettings {
   schoolName: string;
@@ -17,7 +18,7 @@ interface SchoolSettings {
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'students' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'students' | 'settings' | 'subjects'>('dashboard');
   const [isPublicView, setIsPublicView] = useState(true);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [settings, setSettings] = useState<SchoolSettings | null>(null);
@@ -31,13 +32,14 @@ export default function App() {
         ]);
         
         if (generalSnap.exists()) {
+          const data = generalSnap.data();
           setSettings({
-            schoolName: generalSnap.data().schoolName || 'SIMAPNA',
+            schoolName: data.schoolName || 'SIMAPNA',
             secondaryLogoUrl: uiLogoSnap.exists() ? uiLogoSnap.data().url : ''
           });
         }
       } catch (error) {
-        console.error('Error fetching settings:', error);
+        handleFirestoreError(error, 'get', 'settings/general');
       }
     };
     fetchSettings();
@@ -162,6 +164,12 @@ export default function App() {
             onClick={() => setActiveTab('students')} 
           />
           <SidebarLink 
+            icon={<BookOpen />} 
+            label="Mata Pelajaran" 
+            active={activeTab === 'subjects'} 
+            onClick={() => setActiveTab('subjects')} 
+          />
+          <SidebarLink 
             icon={<SettingsIcon />} 
             label="Pengaturan" 
             active={activeTab === 'settings'} 
@@ -241,6 +249,7 @@ export default function App() {
                >
                  {activeTab === 'dashboard' && <Dashboard onNavigateStudents={() => setActiveTab('students')} />}
                  {activeTab === 'students' && <StudentTable />}
+                  {activeTab === 'subjects' && <SubjectManager />}
                  {activeTab === 'settings' && <SettingsForm />}
                </motion.div>
              </AnimatePresence>
@@ -257,9 +266,15 @@ export default function App() {
            />
            <MobileNavLink 
              icon={<Users />} 
-             label="Data" 
+             label="Siswa" 
              active={activeTab === 'students'} 
              onClick={() => setActiveTab('students')} 
+           />
+           <MobileNavLink 
+             icon={<BookOpen />} 
+             label="Mapel" 
+             active={activeTab === 'subjects'} 
+             onClick={() => setActiveTab('subjects')} 
            />
            <MobileNavLink 
              icon={<SettingsIcon />} 

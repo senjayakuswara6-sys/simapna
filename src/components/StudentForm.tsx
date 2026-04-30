@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db, handleFirestoreError } from '../lib/firebase';
-import { collection, setDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
-import { Student } from '../types';
-import { Plus, Trash2, Save } from 'lucide-react';
+import { collection, setDoc, updateDoc, doc, deleteDoc, getDocs, query, orderBy } from 'firebase/firestore';
+import { Student, StudentSubjectScore, Subject } from '../types';
+import { Plus, Trash2, Save, RefreshCcw } from 'lucide-react';
 
 interface StudentFormProps {
   initialData?: Student | null;
@@ -11,6 +11,7 @@ interface StudentFormProps {
 
 export default function StudentForm({ initialData, onClose }: StudentFormProps) {
   const [loading, setLoading] = useState(false);
+  const [availableSubjects, setAvailableSubjects] = useState<Subject[]>([]);
   const [formData, setFormData] = useState<Student>(initialData || {
     name: '',
     birthPlace: '',
@@ -25,18 +26,50 @@ export default function StudentForm({ initialData, onClose }: StudentFormProps) 
     sklNumber: ''
   });
 
-  const [subjectsList, setSubjectsList] = useState<string[]>(
-    initialData 
-      ? (Array.isArray(initialData.subjects) ? initialData.subjects : Object.keys(initialData.subjects || {})) 
-      : []
+  const [subjectsScores, setSubjectsScores] = useState<StudentSubjectScore[]>(
+    initialData?.subjects || []
   );
 
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      const q = query(collection(db, 'subjects'), orderBy('order', 'asc'));
+      const snap = await getDocs(q);
+      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Subject));
+      setAvailableSubjects(data);
+    };
+    fetchSubjects();
+  }, []);
+
+  const handleAutoPopulate = () => {
+    const filtered = availableSubjects.filter(s => 
+      s.className === 'SEMUA' || s.className === formData.className
+    );
+    
+    // Merge with existing scores if any
+    const newList = filtered.map(s => {
+      const existing = subjectsScores.find(score => score.subjectName === s.name);
+      return {
+        subjectName: s.name,
+        score: existing ? existing.score : 0,
+        category: s.category
+      };
+    });
+    setSubjectsScores(newList);
+  };
+
   const handleAddSubject = () => {
-    setSubjectsList([...subjectsList, '']);
+    setSubjectsScores([...subjectsScores, { subjectName: '', score: 0, category: 'UMUM' }]);
   };
 
   const handleRemoveSubject = (index: number) => {
-    setSubjectsList(subjectsList.filter((_, i) => i !== index));
+    setSubjectsScores(subjectsScores.filter((_, i) => i !== index));
+  };
+
+  const calculateAverage = () => {
+    if (subjectsScores.length === 0) return 0;
+    const sum = subjectsScores.reduce((acc, curr) => acc + curr.score, 0);
+    const avg = sum / subjectsScores.length;
+    setFormData({ ...formData, averageScore: parseFloat(avg.toFixed(2)) });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,13 +78,13 @@ export default function StudentForm({ initialData, onClose }: StudentFormProps) 
 
     const data = {
       ...formData,
-      subjects: subjectsList.filter(s => s.trim() !== ''),
+      subjects: subjectsScores.filter(s => s.subjectName.trim() !== ''),
       updatedAt: new Date().toISOString()
     };
 
     try {
+      const studentId = initialData?.id || data.nisn;
       if (initialData?.id) {
-        // If NISN changed and we were using NISN as ID, we need to delete the old one
         if (initialData.nisn !== data.nisn && initialData.id === initialData.nisn) {
           await setDoc(doc(db, 'students', data.nisn), data);
           await deleteDoc(doc(db, 'students', initialData.id));
@@ -59,7 +92,6 @@ export default function StudentForm({ initialData, onClose }: StudentFormProps) 
           await updateDoc(doc(db, 'students', initialData.id), data as any);
         }
       } else {
-        // Use NISN as the document ID for new students to prevent duplicates
         await setDoc(doc(db, 'students', data.nisn), data);
       }
       onClose();
@@ -155,58 +187,120 @@ export default function StudentForm({ initialData, onClose }: StudentFormProps) 
             <option value="XII-1">XII-1</option>
             <option value="XII-2">XII-2</option>
             <option value="XII-3">XII-3</option>
+            <option value="XII-4">XII-4</option>
+            <option value="XII-5">XII-5</option>
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-2">Nilai Rata-rata Akhir</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Nomor SKL (Opsional)</label>
           <input 
-            type="number" step="0.01" required 
-            className="w-full px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-bold text-blue-600"
-            value={formData.averageScore || 0}
-            onChange={e => setFormData({ ...formData, averageScore: parseFloat(e.target.value) || 0 })}
+            type="text" 
+            className="w-full px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs"
+            value={formData.sklNumber || ''}
+            placeholder="No: 060/TU.01-SMAN1PDL"
+            onChange={e => setFormData({ ...formData, sklNumber: e.target.value })}
           />
         </div>
       </div>
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h4 className="font-bold text-slate-800">Daftar Mata Pelajaran (Tanpa Nilai)</h4>
-          <button 
-            type="button" 
-            onClick={handleAddSubject}
-            className="text-sm font-bold text-blue-600 flex items-center gap-1 hover:underline"
-          >
-            <Plus className="w-4 h-4" />
-            Tambah Mapel
-          </button>
+          <h4 className="font-black text-slate-800 text-sm italic">INPUT NILAI MATA PELAJARAN</h4>
+          <div className="flex gap-4">
+            <button 
+              type="button" 
+              onClick={handleAutoPopulate}
+              className="text-xs font-black text-emerald-600 flex items-center gap-1 hover:underline bg-emerald-50 px-2 py-1 rounded"
+            >
+              <RefreshCcw className="w-3 h-3" />
+              AUTO-FILL MAPEL {formData.className}
+            </button>
+            <button 
+              type="button" 
+              onClick={handleAddSubject}
+              className="text-xs font-black text-blue-600 flex items-center gap-1 hover:underline bg-blue-50 px-2 py-1 rounded"
+            >
+              <Plus className="w-3 h-3" />
+              TAMBAH BARIS
+            </button>
+          </div>
         </div>
 
-        <div className="space-y-3">
-          {subjectsList.map((s, idx) => (
-            <div key={idx} className="flex items-center gap-3">
-              <input 
-                type="text" placeholder="Nama Mapel" 
-                className="flex-1 px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                value={s}
-                onChange={e => {
-                  const newList = [...subjectsList];
-                  newList[idx] = e.target.value;
-                  setSubjectsList(newList);
-                }}
-              />
-              <button 
-                type="button" 
-                onClick={() => handleRemoveSubject(idx)}
-                className="p-2 text-slate-400 hover:text-red-500 transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
-          {subjectsList.length === 0 && (
-            <p className="text-center py-4 text-slate-400 text-sm">Belum ada mata pelajaran ditambahkan.</p>
+        <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-slate-100 text-slate-500 font-bold border-b border-slate-200">
+              <tr>
+                <th className="px-4 py-2">Mata Pelajaran</th>
+                <th className="px-4 py-2 w-32">Kategori</th>
+                <th className="px-4 py-2 w-24">Nilai</th>
+                <th className="px-4 py-2 w-12"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {subjectsScores.map((s, idx) => (
+                <tr key={idx}>
+                  <td className="px-2 py-2">
+                    <input 
+                      type="text" required 
+                      className="w-full px-2 py-1 border border-transparent hover:border-slate-300 rounded focus:border-blue-500 outline-none transition-all bg-transparent"
+                      value={s.subjectName}
+                      onChange={e => {
+                        const newList = [...subjectsScores];
+                        newList[idx].subjectName = e.target.value;
+                        setSubjectsScores(newList);
+                      }}
+                    />
+                  </td>
+                  <td className="px-2 py-2">
+                    <select 
+                      className="w-full px-2 py-1 border border-transparent hover:border-slate-300 rounded focus:border-blue-500 outline-none transition-all bg-transparent"
+                      value={s.category}
+                      onChange={e => {
+                        const newList = [...subjectsScores];
+                        newList[idx].category = e.target.value as any;
+                        setSubjectsScores(newList);
+                      }}
+                    >
+                      <option value="UMUM">UMUM</option>
+                      <option value="PILIHAN">PILIHAN</option>
+                      <option value="MULOK">MULOK</option>
+                    </select>
+                  </td>
+                  <td className="px-2 py-2">
+                    <input 
+                      type="number" step="0.01" required 
+                      className="w-full px-2 py-1 border border-transparent hover:border-slate-300 rounded focus:border-blue-500 outline-none transition-all bg-transparent font-bold text-center"
+                      value={s.score}
+                      onBlur={calculateAverage}
+                      onChange={e => {
+                        const newList = [...subjectsScores];
+                        newList[idx].score = parseFloat(e.target.value) || 0;
+                        setSubjectsScores(newList);
+                      }}
+                    />
+                  </td>
+                  <td className="px-2 py-2">
+                    <button 
+                      type="button" 
+                      onClick={() => handleRemoveSubject(idx)}
+                      className="p-1 text-slate-400 hover:text-red-500"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {subjectsScores.length === 0 && (
+            <p className="text-center py-8 text-slate-400 text-xs italic">Gunakan Auto-Fill untuk memuat mata pelajaran kelas ini.</p>
           )}
+        </div>
+
+        <div className="flex justify-between items-center bg-blue-50 p-4 rounded-xl border border-blue-100">
+          <span className="text-sm font-bold text-blue-800 uppercase tracking-widest">Rata-rata Nilai:</span>
+          <span className="text-2xl font-black text-blue-600 tabular-nums">{formData.averageScore}</span>
         </div>
       </div>
 
