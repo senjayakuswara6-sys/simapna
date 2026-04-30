@@ -78,8 +78,8 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
   const scale = (settings.printScale || 100) / 100;
   const showHeader = format === 'FORMAT_1' || forceShowHeader;
   
-  const effectiveTopMargin = (format === 'FORMAT_2' && !forceShowHeader) ? (settings.f4TopMargin || 5) : 1.5;
-  const effectiveBottomMargin = (format === 'FORMAT_2' && !forceShowHeader) ? (settings.f4BottomMargin || 1) : 1.5;
+  const effectiveTopMargin = (format === 'FORMAT_2' && !forceShowHeader) ? (settings.f4TopMargin || 5) : 0.5;
+  const effectiveBottomMargin = (format === 'FORMAT_2' && !forceShowHeader) ? (settings.f4BottomMargin || 1) : 1;
   const effectiveLeftMargin = (format === 'FORMAT_2' && !forceShowHeader) ? (settings.f4LeftMargin || 1.5) : 1.5;
   const effectiveRightMargin = (format === 'FORMAT_2' && !forceShowHeader) ? (settings.f4RightMargin || 1.5) : 1.5;
 
@@ -147,8 +147,8 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
             break-after: page !important;
             page-break-after: always !important;
             page-break-inside: avoid !important;
-            width: ${showHeader ? '210mm' : '215mm'} !important;
-            height: ${showHeader ? '297mm' : '330mm'} !important;
+            width: ${format === 'FORMAT_2' ? '215mm' : '210mm'} !important;
+            height: ${format === 'FORMAT_2' ? '330mm' : '297mm'} !important;
             padding-top: ${paperStyle.paddingTop} !important;
             padding-bottom: ${paperStyle.paddingBottom} !important;
             padding-left: ${paperStyle.paddingLeft} !important;
@@ -226,15 +226,15 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
       {/* PAPER CONTAINER */}
       <div 
         className={`bg-white shadow-2xl mx-auto text-black font-['Times_New_Roman',_serif] text-[11pt] print:shadow-none print:m-0 skl-printable-area ${
-          showHeader
-          ? 'w-[210mm] min-h-[297mm]' 
-          : 'w-[215mm] min-h-[330mm]' // F4 is 215x330mm
+          format === 'FORMAT_2'
+          ? 'w-[215mm] min-h-[330mm]' 
+          : 'w-[210mm] min-h-[297mm]'
         }`}
         style={paperStyle}
       >
         {/* Header - Shown if digital or FORMAT_1 */}
         {showHeader && (
-          <div className="mb-2 w-full">
+          <div className="mb-0 w-full">
             {settings.logoUrl ? (
               <img src={settings.logoUrl} alt="Kop Surat" className="w-full object-contain" referrerPolicy="no-referrer" />
             ) : (
@@ -246,13 +246,13 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
         )}
 
         {/* Title */}
-        <div className="text-center mb-4">
-          <h2 className="text-[14pt] font-bold underline uppercase tracking-tight leading-tight">Surat Keterangan Lulus</h2>
-          <p className="font-bold text-[11pt]">Nomor : {student.sklNumber || settings.letterNumberTemplate}</p>
+        <div className="text-center mb-1 space-y-0">
+          <h2 className="text-[13pt] font-bold underline uppercase tracking-tight leading-none m-0">Surat Keterangan Lulus</h2>
+          <p className="font-bold text-[11pt] m-0 leading-none mt-1">Nomor : {student.sklNumber || settings.letterNumberTemplate}</p>
         </div>
 
         {/* Opening Info */}
-        <div className="mb-3 text-justify" style={{ lineHeight: '1.3' }}>
+        <div className="mb-2 text-justify" style={{ lineHeight: '1.2' }}>
           <p>Kepala SMAS PGRI Naringgul, Tahun Pelajaran {settings.academicYear}, dengan berdasarkan:</p>
           <ol className="list-decimal ml-8 mt-1 space-y-0 text-[10.5pt]">
             <li>Penyelesaian seluruh program pembelajaran pada Kurikulum Merdeka;</li>
@@ -261,10 +261,10 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
           </ol>
         </div>
 
-        <p className="mb-1 text-[10.5pt] font-medium">Menerangkan bahwa :</p>
+        <p className="mb-0 text-[10.5pt] font-medium">Menerangkan bahwa :</p>
 
         {/* Student Profile Info */}
-        <div className="ml-8 space-y-0 mb-4 text-[10.5pt]">
+        <div className="ml-8 space-y-0.5 mb-2 text-[10.5pt]">
           <div className="grid grid-cols-[200px_10px_1fr] leading-tight">
             <span>Nama</span><span>:</span><span className="font-bold uppercase tracking-tight">{student.name}</span>
           </div>
@@ -290,8 +290,8 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
         {/* Format 2 Subjects Table */}
         {format === 'FORMAT_2' ? (
           <>
-            <p className="mb-1 text-[10pt]">Dengan nilai sebagai berikut :</p>
-            <table className="w-full border-collapse border border-black mb-2 text-[9.5pt] skl-table">
+            <p className="mb-0.5 text-[10pt]">Dengan nilai sebagai berikut :</p>
+            <table className="w-full border-collapse border border-black mb-1 text-[9.5pt] skl-table">
               <thead className="bg-slate-50/10">
                 <tr className="h-[20px]">
                   <th className="border border-black px-1 py-0 w-8 text-center italic">No</th>
@@ -371,15 +371,15 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
           </>
         )}
 
-        <div className="mb-6 italic text-[9pt] leading-tight">
+        <div className="mb-2 italic text-[9pt] leading-tight">
           <p>Surat Keterangan Lulus (SKL) ini diterbitkan pada tanggal {formatDate(settings.graduationDate)} dan bersifat sementara hingga murid menerima ijazah dan transkrip nilai.</p>
         </div>
 
         {/* Signature Section - PRESERVED AS PER USER REQUEST */}
-        <div className="flex justify-end mt-4 px-8">
+        <div className="flex justify-end mt-2 px-8">
           <div className="w-[300px] text-center flex flex-col items-center relative">
             <p className="mb-0 text-[10.5pt]">{settings.regency}, {formatDate(settings.graduationDate)}</p>
-            <p className="mb-16 leading-tight text-[10.5pt]">Kepala SMAS PGRI Naringgul,</p>
+            <p className="mb-14 leading-tight text-[10.5pt]">Kepala SMAS PGRI Naringgul,</p>
             
         {showStamp && settings.signatureStampUrl && (
           <div className="absolute top-[20px] left-[10px] w-[180px] h-[100px] pointer-events-none z-10 transition-all opacity-80">
