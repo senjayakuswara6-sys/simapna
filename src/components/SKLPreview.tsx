@@ -71,7 +71,23 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
   };
 
   const getScoreForSubject = (name: string) => {
-    const found = student.subjects?.find(s => s.subjectName === name);
+    if (!student.subjects) return '-';
+    
+    // 1. Exact match (fastest and most accurate)
+    let found = student.subjects.find(s => s.subjectName === name);
+    
+    // 2. Fallback: If no exact match, try a normalized match
+    // This handles cases like renaming "Matematika (Umum)" to "Matematika"
+    if (!found) {
+      const normalize = (str: string) => str.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const normalizedTarget = normalize(name);
+      
+      found = student.subjects.find(s => {
+        const normalizedSource = normalize(s.subjectName);
+        return normalizedSource.includes(normalizedTarget) || normalizedTarget.includes(normalizedSource);
+      });
+    }
+
     return found ? found.score.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
   };
 

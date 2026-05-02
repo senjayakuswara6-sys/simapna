@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db, handleFirestoreError } from '../lib/firebase';
-import { collection, query, onSnapshot, doc, addDoc, updateDoc, deleteDoc, orderBy } from 'firebase/firestore';
-import { Subject, SubjectCategory } from '../types';
+import { collection, query, onSnapshot, doc, addDoc, updateDoc, deleteDoc, orderBy, getDocs } from 'firebase/firestore';
+import { Subject, SubjectCategory, Student } from '../types';
 import { Plus, Trash2, Edit2, Save, X, GripVertical } from 'lucide-react';
 import { motion, Reorder } from 'motion/react';
 
@@ -57,8 +57,29 @@ export default function SubjectManager() {
   };
 
   const handleUpdate = async (id: string, data: Partial<Subject>) => {
+    const originalSubject = subjects.find(s => s.id === id);
     try {
       await updateDoc(doc(db, 'subjects', id), data);
+      
+      // If name changed, propogate to all students
+      if (data.name && originalSubject && originalSubject.name !== data.name) {
+        const studentsSnap = await getDocs(collection(db, 'students'));
+        const updatePromises = studentsSnap.docs.map(studentDoc => {
+          const student = studentDoc.data() as Student;
+          if (student.subjects && student.subjects.length > 0) {
+            const hasSubject = student.subjects.some(s => s.subjectName === originalSubject.name);
+            if (hasSubject) {
+              const newSubjects = student.subjects.map(s => 
+                s.subjectName === originalSubject.name ? { ...s, subjectName: data.name! } : s
+              );
+              return updateDoc(doc(db, 'students', studentDoc.id), { subjects: newSubjects });
+            }
+          }
+          return Promise.resolve();
+        });
+        await Promise.all(updatePromises);
+      }
+      
       setEditingId(null);
     } catch (error) {
       handleFirestoreError(error, 'update', `subjects/${id}`);
