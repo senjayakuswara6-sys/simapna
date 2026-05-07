@@ -63,7 +63,12 @@ export default function SettingsForm() {
     sklFotoSpacing: 3,
     namaSiswaKapital: true,
     showIdentitasKurikulum: true,
-    showPeminatanSKL: true
+    showPeminatanSKL: true,
+    sklTemplate: 'V1',
+    sklFontSize: 11,
+    sklLineHeight: 1.3,
+    sklTableFontSize: 9.5,
+    sklTableLineHeight: 1.15
   });
   
   const [loading, setLoading] = useState(true);
@@ -575,9 +580,9 @@ export default function SettingsForm() {
               <div className="bg-indigo-100 p-2 rounded-xl">
                  <Type className="w-5 h-5 text-indigo-600" />
               </div>
-              <h3 className="font-black text-slate-800 uppercase tracking-tight">Setting Tampilan Cetak Nama Siswa</h3>
+              <h3 className="font-black text-slate-800 uppercase tracking-tight">Setting Tampilan Cetak & Tipografi</h3>
            </div>
-           <div className="p-8 space-y-5">
+           <div className="p-8 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                  <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase">Tampilan Nama Siswa</label>
@@ -590,6 +595,63 @@ export default function SettingsForm() {
                       <option value="false">Kapital di Awal Kata (Contoh : Arya Wiguna)</option>
                     </select>
                  </div>
+                 <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase">Template Default (Pilihan Siswa)</label>
+                    <select
+                      className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none"
+                      value={settings.sklTemplate || 'V1'}
+                      onChange={e => setSettings({...settings, sklTemplate: e.target.value as 'V1' | 'V2'})}
+                    >
+                      <option value="V1">Template Classic (V1)</option>
+                      <option value="V2">Template Modern Compact (V2)</option>
+                    </select>
+                 </div>
+              </div>
+
+              <div className="pt-6 border-t border-slate-100">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Fine-Tuning Ukuran Font & Spasi (A4/F4 Optimasi)</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase">Ukuran Font Utama (pt)</label>
+                      <input 
+                        type="number" step="0.5"
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none"
+                        value={settings.sklFontSize || 11}
+                        onChange={e => setSettings({...settings, sklFontSize: parseFloat(e.target.value)})}
+                      />
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase">Jarak Baris (Multiplier)</label>
+                      <input 
+                        type="number" step="0.05"
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none"
+                        value={settings.sklLineHeight || 1.3}
+                        onChange={e => setSettings({...settings, sklLineHeight: parseFloat(e.target.value)})}
+                      />
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase">Font Tabel (pt)</label>
+                      <input 
+                        type="number" step="0.5"
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none"
+                        value={settings.sklTableFontSize || 9.5}
+                        onChange={e => setSettings({...settings, sklTableFontSize: parseFloat(e.target.value)})}
+                      />
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase">Spasi Tabel</label>
+                      <input 
+                        type="number" step="0.05"
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none"
+                        value={settings.sklTableLineHeight || 1.15}
+                        onChange={e => setSettings({...settings, sklTableLineHeight: parseFloat(e.target.value)})}
+                      />
+                   </div>
+                </div>
+                <p className="mt-3 text-[10px] text-slate-400 italic">*) Sesuaikan nilai di atas jika konten SKL terpotong atau lebih dari 1 halaman.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-slate-100">
                  <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase">Tampilkan kolom identitas kurikulum</label>
                     <select

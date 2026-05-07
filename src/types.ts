@@ -57,6 +57,7 @@ export interface SchoolSettings {
   isCountdownActive?: boolean;
   countdownTargetDate?: string;
   sklFormat: 'FORMAT_1' | 'FORMAT_2';
+  sklTemplate?: 'V1' | 'V2'; // Student choice template
   
   // Printing Margins (maintained)
   f4TopMargin: number; // in cm
@@ -64,6 +65,10 @@ export interface SchoolSettings {
   f4LeftMargin?: number;
   f4RightMargin?: number;
   printScale?: number; // percentage
+  sklFontSize?: number; // in pt
+  sklLineHeight?: number; // multiplier
+  sklTableFontSize?: number; // in pt
+  sklTableLineHeight?: number; // multiplier
 
   // NEW: Dynamic SKL Settings
   sklShowHeader?: boolean;

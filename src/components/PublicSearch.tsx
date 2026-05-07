@@ -122,6 +122,8 @@ export default function PublicSearch({ onAdminLogin }: PublicSearchProps) {
     return () => clearInterval(timer);
   }, [celebrating, countdown]);
 
+  const [selectedTemplate, setSelectedTemplate] = useState<'V1' | 'V2'>('V2');
+
   const performSearch = async (targetNisn: string) => {
     if (isLocked) {
       setError('Akses pencarian belum dibuka.');
@@ -439,6 +441,20 @@ export default function PublicSearch({ onAdminLogin }: PublicSearchProps) {
                      </div>
                      
                      <div className="flex flex-col gap-2 w-full md:w-auto">
+                        <div className="flex bg-slate-100 p-1 rounded-xl mb-2">
+                           <button 
+                             onClick={() => setSelectedTemplate('V1')}
+                             className={`flex-1 px-4 py-2 rounded-lg text-[10px] font-black transition-all ${selectedTemplate === 'V1' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}
+                           >
+                             FORMAT CLASSIC (V1)
+                           </button>
+                           <button 
+                             onClick={() => setSelectedTemplate('V2')}
+                             className={`flex-1 px-4 py-2 rounded-lg text-[10px] font-black transition-all ${selectedTemplate === 'V2' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}
+                           >
+                             FORMAT MODERN (V2)
+                           </button>
+                        </div>
                         <button 
                           onClick={handlePrint}
                           className="flex items-center justify-center gap-3 bg-slate-900 hover:bg-black text-white px-10 py-5 rounded-2xl font-black shadow-xl transition-all active:scale-95 group"
@@ -446,7 +462,9 @@ export default function PublicSearch({ onAdminLogin }: PublicSearchProps) {
                           <Printer className="w-6 h-6" />
                           CETAK SKL RESMI
                         </button>
-                        <p className="text-[10px] text-center font-bold text-slate-400 uppercase tracking-widest">Validitas dokumen terjamin</p>
+                        <p className="text-[10px] text-center font-bold text-slate-400 uppercase tracking-widest leading-tight">
+                           {settings?.sklShowHeader === false ? 'Hapus Kop Kertas Sebelum Cetak' : 'Validitas dokumen terjamin'}
+                        </p>
                      </div>
                   </div>
                </div>
@@ -455,8 +473,7 @@ export default function PublicSearch({ onAdminLogin }: PublicSearchProps) {
                   <SKLPreview 
                     student={student} 
                     isAdminView={false} 
-                    forceShowHeader={true} 
-                    forcedShowStamp={settings?.publicShowStamp ?? true} 
+                    template={selectedTemplate}
                   />
                </div>
                
