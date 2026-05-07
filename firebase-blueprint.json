@@ -71,9 +71,25 @@
       "properties": {
         "url": { "type": "string" }
       }
+    },
+    "DashboardSummary": {
+      "title": "Dashboard Summary",
+      "description": "Cached statistical summary for the dashboard",
+      "type": "object",
+      "properties": {
+        "stats": { "type": "object" },
+        "classStats": { "type": "array" },
+        "subjectStats": { "type": "array" },
+        "topStudents": { "type": "array" },
+        "lastSync": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "firestore": {
+    "dashboard/summary": {
+      "schema": "DashboardSummary",
+      "description": "Cached statistical data for faster dashboard loading"
+    },
     "students/{studentId}": {
       "schema": "Student",
       "description": "Koleksi data siswa"
@@ -97,6 +113,18 @@
     "settings/signature_stamp": {
       "schema": "Asset",
       "description": "Signature and Stamp image"
+    },
+    "settings/graduation_invitation": {
+      "schema": "object",
+      "description": "Pengaturan Surat Undangan Rapat Kelulusan"
+    },
+    "settings/graduation_minutes": {
+      "schema": "object",
+      "description": "Pengaturan Berita Acara Rapat Pleno"
+    },
+    "settings/graduation_sk": {
+      "schema": "object",
+      "description": "Pengaturan SK Kelulusan Siswa"
     }
   }
 }

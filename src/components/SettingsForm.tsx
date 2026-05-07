@@ -2,8 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { db, handleFirestoreError } from '../lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { SchoolSettings } from '../types';
-import { Save, CheckCircle2, AlertCircle, Printer } from 'lucide-react';
-import { motion } from 'motion/react';
+import { Save, CheckCircle2, AlertCircle, Printer, FileText, Settings as UISettings, UserCheck, Layout, Type, Calculator, PenTool, BookOpen, Info, HelpCircle, Eye, RefreshCw, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import SKLPreview from './SKLPreview';
+import TranscriptPreview from './TranscriptPreview';
+import { Student } from '../types';
+import toast from 'react-hot-toast';
 
 export default function SettingsForm() {
   const [settings, setSettings] = useState<SchoolSettings>({
@@ -17,24 +21,84 @@ export default function SettingsForm() {
     academicYear: '2024/2025',
     graduationDate: new Date().toISOString().split('T')[0],
     plenaryDate: new Date().toISOString().split('T')[0],
-    letterNumberTemplate: '243/SMA-PGRI/1.6/M/2025',
+    letterNumberTemplate: '285/SMA-PGRI/1.6/O.2026',
     signatureStampUrl: '',
     isCountdownActive: false,
-    countdownTargetDate: (() => {
-      const now = new Date();
-      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-      return now.toISOString().slice(0, 16);
-    })(),
-    sklFormat: 'FORMAT_1',
+    countdownTargetDate: new Date().toISOString().slice(0, 16),
+    sklFormat: 'FORMAT_2',
     f4TopMargin: 5,
     f4BottomMargin: 1,
     f4LeftMargin: 1.5,
     f4RightMargin: 1.5,
-    printScale: 100
+    printScale: 100,
+    
+    // Default SKL Content
+    sklShowHeader: true,
+    sklHeaderMargin: 5,
+    sklTitle: 'SURAT KETERANGAN LULUS',
+    sklIsiTeks1: 'Yang bertanda tangan di bawah ini Kepala SMAS PGRI Naringgul, Menerangkan bahwa :',
+    sklIdentitas1: 'Nama Peserta Didik',
+    sklIdentitas2: 'Tempat & Tanggal Lahir',
+    sklIdentitas3: 'Jenis Kelamin',
+    sklIdentitas4: 'Nomor Induk Siswa',
+    sklIdentitas5: 'Nomor Induk Siswa Nasional',
+    sklIdentitas6: 'Agama',
+    sklIdentitas7: 'Nama Orang Tua',
+    sklIdentitas8: 'Peminatan (K13)',
+    sklIsiTeks2: 'berdasarkan kriteria kelulusan peserta didik yang sudah ditetapkan sebagai berikut :\n1. Penyelesaian seluruh program pembelajaran pada Kurikulum Merdeka;\n2. Kriteria kelulusan dari satuan pendidikan sesuai dengan peraturan perundang-undangan;\n3. Rapat Pleno Dewan Guru tentang Penetapan Kelulusan pada tanggal 2 Mei 2026;\nMaka yang bersangkutan dinyatakan :',
+    sklStatusKelulusanLabel: 'Status Kelulusan',
+    sklShowStatus: true,
+    sklIsiTeks3: 'dari satuan pendidikan SMAS PGRI Naringgul berdasarkan Pengumuman Kelulusan Nomor 285/SMAS-PGRI/1.6/O.2026, tanggal 4 Mei 2026, dengan nilai sebagai berikut :',
+    sklAdaTabelNilai: true,
+    sklJudulKolomNilai: 'Nilai',
+    sklIsiTeks4: 'Surat Keterangan Lulus ini bersifat sementara, dan hanya berlaku sampai dikeluarkannya ijazah.\nDemikian Surat Keterangan ini diberikan untuk dapat dipergunakan sebagaimana mestinya, apabila dikemudian hari terdapat kekeliruan maka akan dilakukan perbaikan atau Surat Keterangan ini tidak berlaku.',
+    
+    numDecimalNilai: 2,
+    showRataRata: true,
+    numDecimalRataRata: 2,
+    ttdTempatTanggal: 'Cianjur, 4 Mei 2026',
+    ttdJabatan: 'Kepala Sekolah',
+    showFotoSiswa: false,
+    showTtdKepala: false,
+    sklFotoSpacing: 3,
+    namaSiswaKapital: true,
+    showIdentitasKurikulum: true,
+    showPeminatanSKL: true
   });
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+  const [isChangingTemplate, setIsChangingTemplate] = useState(false);
+  const [previewType, setPreviewType] = useState<'skl' | 'transcript' | null>(null);
+
+  // Mock student for preview
+  const mockStudent: Student = {
+    nisn: '0012345678',
+    nis: '232410001',
+    name: 'CONTOH NAMA SISWA LENGKAP',
+    gender: 'L',
+    birthPlace: 'Cianjur',
+    birthDate: '2008-05-20',
+    parentName: 'NAMA ORANG TUA',
+    className: 'XII MIPA 1',
+    peminatan: 'MIPA',
+    status: 'LULUS',
+    averageScore: 88.50,
+    subjects: [
+      { subjectName: 'Pendidikan Agama dan Budi Pekerti', score: 85, category: 'UMUM' },
+      { subjectName: 'Pendidikan Pancasila dan Kewarganegaraan', score: 87, category: 'UMUM' },
+      { subjectName: 'Bahasa Indonesia', score: 90, category: 'UMUM' },
+      { subjectName: 'Matematika', score: 82, category: 'UMUM' },
+    ]
+  };
+
+  const handleTemplateChange = (format: 'FORMAT_1' | 'FORMAT_2') => {
+    setIsChangingTemplate(true);
+    setTimeout(() => {
+      setSettings(prev => ({ ...prev, sklFormat: format }));
+      setIsChangingTemplate(false);
+    }, 1000);
+  };
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -48,13 +112,13 @@ export default function SettingsForm() {
 
         if (generalSnap.exists()) {
           const data = generalSnap.data();
-          setSettings({
-            ...settings,
+          setSettings(prev => ({
+            ...prev,
             ...data,
             logoUrl: logoSnap.exists() ? logoSnap.data().url : '',
             secondaryLogoUrl: uiLogoSnap.exists() ? uiLogoSnap.data().url : '',
             signatureStampUrl: signatureSnap.exists() ? signatureSnap.data().url : '',
-          } as SchoolSettings);
+          } as SchoolSettings));
         }
       } catch (error) {
         console.error(error);
@@ -68,121 +132,27 @@ export default function SettingsForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    setMessage(null);
     try {
       const { logoUrl, secondaryLogoUrl, signatureStampUrl, ...generalData } = settings;
       
       await Promise.all([
         setDoc(doc(db, 'settings', 'general'), generalData),
-        logoUrl ? setDoc(doc(db, 'settings', 'logo_header'), { url: logoUrl }) : Promise.resolve(),
-        secondaryLogoUrl ? setDoc(doc(db, 'settings', 'logo_ui'), { url: secondaryLogoUrl }) : Promise.resolve(),
-        signatureStampUrl ? setDoc(doc(db, 'settings', 'signature_stamp'), { url: signatureStampUrl }) : Promise.resolve(),
       ]);
 
-      setMessage({ text: 'Pengaturan berhasil disimpan!', type: 'success' });
+      toast.success('Pengaturan berhasil disimpan!');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
       handleFirestoreError(error, 'write', 'settings/general');
-      setMessage({ text: 'Gagal menyimpan pengaturan.', type: 'error' });
+      toast.error('Gagal menyimpan pengaturan.');
     } finally {
       setSaving(false);
     }
   };
 
-  const compressImage = (base64Str: string, maxWidth = 1600, maxHeight = 1600, quality = 0.9, format = 'image/png'): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.src = base64Str;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > maxWidth) {
-            height *= maxWidth / width;
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width *= maxHeight / height;
-            height = maxHeight;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
-          ctx.drawImage(img, 0, 0, width, height);
-        }
-        resolve(canvas.toDataURL(format, quality));
-      };
-    });
-  };
-
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // If file is already reasonable size (< 600KB), don't compress to keep 100% quality
-    if (file.size < 600 * 1024) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSettings({ ...settings, logoUrl: reader.result as string });
-      };
-      reader.readAsDataURL(file);
-      return;
-    }
-
+  const handleImageUpload = (file: File, type: 'logoUrl' | 'secondaryLogoUrl' | 'signatureStampUrl') => {
     const reader = new FileReader();
-    reader.onloadend = async () => {
-      // Use high resolution for header logo to avoid blur (Kop Surat)
-      const compressed = await compressImage(reader.result as string, 2400, 800, 0.95, 'image/png');
-      setSettings({ ...settings, logoUrl: compressed });
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleSecondaryLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size < 300 * 1024) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSettings({ ...settings, secondaryLogoUrl: reader.result as string });
-      };
-      reader.readAsDataURL(file);
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const compressed = await compressImage(reader.result as string, 600, 600, 0.9, 'image/png');
-      setSettings({ ...settings, secondaryLogoUrl: compressed });
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleStampUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size < 500 * 1024) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSettings({ ...settings, signatureStampUrl: reader.result as string });
-      };
-      reader.readAsDataURL(file);
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const compressed = await compressImage(reader.result as string, 1200, 1200, 0.9, 'image/png');
-      setSettings({ ...settings, signatureStampUrl: compressed });
+    reader.onloadend = () => {
+      setSettings(prev => ({ ...prev, [type]: reader.result as string }));
     };
     reader.readAsDataURL(file);
   };
@@ -190,423 +160,538 @@ export default function SettingsForm() {
   if (loading) return null;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-800">Pengaturan Sekolah</h2>
-        <p className="text-slate-500">Konfigurasi ini akan digunakan sebagai header dan footer pada Surat Keterangan Lulus.</p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="col-span-1 md:col-span-2">
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Logo Sekolah (Upload)</label>
-            <div className="flex items-center gap-6 p-4 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
-              <div className="w-24 h-24 bg-white border border-slate-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
-                {settings.logoUrl ? (
-                  <img src={settings.logoUrl} alt="Logo Preview" className="w-full h-full object-contain" />
-                ) : (
-                  <div className="text-[10px] text-slate-400">Preview</div>
-                )}
-              </div>
-              <div className="flex-1 space-y-2">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoUpload}
-                  className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                />
-                <p className="text-xs text-slate-400">Gunakan format PNG/JPG transparan untuk hasil terbaik (Maks 1MB).</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="col-span-1 md:col-span-2">
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Logo Sekolah untuk UI Dashboard (Upload)</label>
-            <div className="flex items-center gap-6 p-4 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
-              <div className="w-20 h-20 bg-white border border-slate-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
-                {settings.secondaryLogoUrl ? (
-                  <img src={settings.secondaryLogoUrl} alt="Logo Preview" className="w-full h-full object-contain" />
-                ) : (
-                  <div className="text-[10px] text-slate-400">Preview</div>
-                )}
-              </div>
-              <div className="flex-1 space-y-2">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleSecondaryLogoUpload}
-                  className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                />
-                <p className="text-xs text-slate-400">Gunakan logo sekolah saja (tanpa teks alamat) untuk tampilan di HP/Dashboard (Maks 512KB).</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="col-span-1 md:col-span-2">
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Upload Cap & TTD Kepala Sekolah (JPG/PNG Transparan)</label>
-            <div className="flex items-center gap-6 p-4 border-2 border-dashed border-blue-200 rounded-xl bg-blue-50/30 text-left">
-              <div className="w-48 h-32 bg-white border border-slate-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0 shadow-sm relative">
-                {settings.signatureStampUrl ? (
-                  <img src={settings.signatureStampUrl} alt="Stamp Preview" className="w-full h-full object-contain" />
-                ) : (
-                  <div className="text-xs text-slate-400 text-center p-2 italic">Belum ada file diupload</div>
-                )}
-              </div>
-              <div className="flex-1 space-y-2">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleStampUpload}
-                  className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                />
-                <p className="text-xs text-slate-400 font-medium">Gunakan foto cap dan tanda tangan yang sudah di-crop transparan (format .png) agar menindih nama dengan rapi.</p>
-                {settings.signatureStampUrl && (
-                  <button 
-                    type="button"
-                    onClick={() => setSettings({...settings, signatureStampUrl: ''})}
-                    className="text-xs text-red-500 font-semibold hover:underline"
-                  >
-                    Hapus Cap
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="col-span-1 md:col-span-2">
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Nama Sekolah</label>
-            <input
-              type="text"
-              required
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-              value={settings.schoolName || ''}
-              onChange={e => setSettings({ ...settings, schoolName: e.target.value })}
-              placeholder="Contoh: SMA PGRI NARINGGUL"
-            />
-          </div>
-
-          <div className="col-span-1 md:col-span-2">
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Alamat Lengkap</label>
-            <textarea
-              required
-              rows={2}
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-              value={settings.address || ''}
-              onChange={e => setSettings({ ...settings, address: e.target.value })}
-              placeholder="Jalan Raya Naringgul No. 1..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Kecamatan</label>
-            <input
-              type="text"
-              required
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-              value={settings.district || ''}
-              onChange={e => setSettings({ ...settings, district: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Kabupaten</label>
-            <input
-              type="text"
-              required
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-              value={settings.regency || ''}
-              onChange={e => setSettings({ ...settings, regency: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Kepala Sekolah</label>
-            <input
-              type="text"
-              required
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-              value={settings.headmasterName || ''}
-              onChange={e => setSettings({ ...settings, headmasterName: e.target.value })}
-            />
-          </div>
-
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-1">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Tipe ID (NIP/NPA/NIY)</label>
-              <select
-                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                value={settings.headmasterIdType || 'NIP'}
-                onChange={e => setSettings({ ...settings, headmasterIdType: e.target.value })}
-              >
-                <option value="NIP">NIP (PNS)</option>
-                <option value="NPA">NPA (PGRI)</option>
-                <option value="NIY">NIY (Yayasan)</option>
-                <option value="NIK">NIK (Personal)</option>
-                <option value="NIP/NPA">NIP/NPA</option>
-              </select>
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Nomor Identitas</label>
-              <input
-                type="text"
-                required
-                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                value={settings.headmasterNip || ''}
-                onChange={e => setSettings({ ...settings, headmasterNip: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Tahun Pelajaran</label>
-            <input
-              type="text"
-              required
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-              value={settings.academicYear || ''}
-              onChange={e => setSettings({ ...settings, academicYear: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Tanggal Kelulusan</label>
-            <input
-              type="date"
-              required
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-              value={settings.graduationDate || ''}
-              onChange={e => setSettings({ ...settings, graduationDate: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Tanggal Rapat Pleno</label>
-            <input
-              type="date"
-              required
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-              value={settings.plenaryDate || ''}
-              onChange={e => setSettings({ ...settings, plenaryDate: e.target.value })}
-            />
-          </div>
-
-          <div className="col-span-1 md:col-span-2">
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Template No. Surat</label>
-            <input
-              type="text"
-              required
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-              value={settings.letterNumberTemplate || ''}
-              onChange={e => setSettings({ ...settings, letterNumberTemplate: e.target.value })}
-              placeholder="Contoh: 243/SMA-PGRI/1.6/M/2025"
-            />
-          </div>
-
-          <div className="col-span-1 md:col-span-2 pt-4 border-t border-slate-100">
-            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <span className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </span>
-              Pengaturan Format SKL & Kertas
-            </h3>
-            
-            <div className="bg-blue-50/50 rounded-xl p-6 space-y-6 border border-blue-100">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-3">Format SKL Default</label>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setSettings({ ...settings, sklFormat: 'FORMAT_1' })}
-                    className={`p-4 rounded-xl border-2 transition-all text-left flex flex-col gap-2 ${settings.sklFormat === 'FORMAT_1' ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-300'}`}
-                  >
-                    <span className="font-bold">FORMAT 1 (Versi 1)</span>
-                    <span className="text-[10px] opacity-80">Layout standar A4 dengan Kop Surat elektronik. Menggunakan daftar mapel sederhana.</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSettings({ ...settings, sklFormat: 'FORMAT_2' })}
-                    className={`p-4 rounded-xl border-2 transition-all text-left flex flex-col gap-2 ${settings.sklFormat === 'FORMAT_2' ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-300'}`}
-                  >
-                    <span className="font-bold">FORMAT 2 (Tabel Mapel & F4)</span>
-                    <span className="text-[10px] opacity-80">Layout F4 untuk kertas ber-kop (pre-printed). Menggunakan tabel nilai terstruktur (Umum/Pilihan/Mulok).</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-blue-100">
-                <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-slate-200">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-blue-600 p-2 rounded-lg text-white">
-                      <Printer className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-slate-800">Tampilkan Stempel di Publik</p>
-                      <p className="text-xs text-slate-500">Siswa dapat melihat stempel & TTD saat cek hasil / download</p>
-                    </div>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      className="sr-only peer"
-                      checked={settings.publicShowStamp ?? true}
-                      onChange={e => setSettings({ ...settings, publicShowStamp: e.target.checked })}
-                    />
-                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-              </div>
-
-              {settings.sklFormat === 'FORMAT_2' && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="block text-sm font-semibold text-slate-700 italic">Jarak Atas (Top)</label>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="number"
-                          step="0.1"
-                          className="w-24 px-3 py-2 border border-slate-200 rounded-lg"
-                          value={settings.f4TopMargin || 0}
-                          onChange={e => setSettings({ ...settings, f4TopMargin: parseFloat(e.target.value) || 0 })}
-                        />
-                        <span className="text-xs text-slate-500">cm</span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="block text-sm font-semibold text-slate-700 italic">Jarak Bawah (Bottom)</label>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="number"
-                          step="0.1"
-                          className="w-24 px-3 py-2 border border-slate-200 rounded-lg"
-                          value={settings.f4BottomMargin || 0}
-                          onChange={e => setSettings({ ...settings, f4BottomMargin: parseFloat(e.target.value) || 0 })}
-                        />
-                        <span className="text-xs text-slate-500">cm</span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="block text-sm font-semibold text-slate-700 italic">Jarak Kiri (Left)</label>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="number"
-                          step="0.1"
-                          className="w-24 px-3 py-2 border border-slate-200 rounded-lg"
-                          value={settings.f4LeftMargin || 0}
-                          onChange={e => setSettings({ ...settings, f4LeftMargin: parseFloat(e.target.value) || 0 })}
-                        />
-                        <span className="text-xs text-slate-500">cm</span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="block text-sm font-semibold text-slate-700 italic">Jarak Kanan (Right)</label>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="number"
-                          step="0.1"
-                          className="w-24 px-3 py-2 border border-slate-200 rounded-lg"
-                          value={settings.f4RightMargin || 0}
-                          onChange={e => setSettings({ ...settings, f4RightMargin: parseFloat(e.target.value) || 0 })}
-                        />
-                        <span className="text-xs text-slate-500">cm</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-blue-100">
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Skala Cetak (Zoom)</label>
-                    <div className="flex items-center gap-4">
-                      <input
-                        type="range"
-                        min="50"
-                        max="100"
-                        step="1"
-                        className="flex-1"
-                        value={settings.printScale || 100}
-                        onChange={e => setSettings({ ...settings, printScale: parseInt(e.target.value) })}
-                      />
-                      <span className="bg-white px-4 py-2 border border-slate-200 rounded-lg font-bold text-blue-600 min-w-[80px] text-center">
-                        {settings.printScale || 100}%
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-slate-400 mt-1 italic">Kecilkan skala jika dokumen terpotong atau terlalu panjang ke bawah (Disarankan 95-100%).</p>
-                  </div>
-
-                  <p className="text-xs text-slate-400 p-2 bg-white rounded border border-blue-100 italic">
-                    * Margin ini khusus untuk Format 2 (F4). Atur sesuai ukuran fisik Kop Surat Anda.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="col-span-1 md:col-span-2 pt-4 border-t border-slate-100">
-            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <span className="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </span>
-              Pengaturan Countdown (Waktu Mundur)
-            </h3>
-            
-            <div className="bg-orange-50/50 rounded-xl p-6 space-y-6 border border-orange-100">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-semibold text-slate-700 block">Status Countdown</label>
-                  <p className="text-xs text-slate-500">Aktifkan untuk menunda akses pencarian sampai waktu yang ditentukan.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSettings({ ...settings, isCountdownActive: !settings.isCountdownActive })}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${settings.isCountdownActive ? 'bg-blue-600' : 'bg-slate-300'}`}
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.isCountdownActive ? 'translate-x-6' : 'translate-x-1'}`} />
-                </button>
-              </div>
-
-              {settings.isCountdownActive && (
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-slate-700">Waktu Target Pengumuman</label>
-                  <input
-                    type="datetime-local"
-                    required={settings.isCountdownActive}
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                    value={settings.countdownTargetDate || ''}
-                    onChange={e => setSettings({ ...settings, countdownTargetDate: e.target.value })}
-                  />
-                  <p className="text-xs text-orange-600">Siswa tidak akan bisa mengecek NISN sebelum waktu ini tiba.</p>
-                </div>
-              )}
-            </div>
-          </div>
+    <div className="max-w-6xl mx-auto -mb-10 min-h-screen flex flex-col relative">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
+            <Layout className="w-6 h-6 text-blue-600" />
+            Setting Tampilan SKL dan Transkrip Nilai Ijazah
+          </h2>
+          <p className="text-slate-500 text-sm font-medium">Sesuaikan isi dan tampilan dokumen SKL secara detail.</p>
         </div>
-
-        <div className="bg-slate-50 p-6 flex items-center justify-between">
-          <div>
-            {message && (
-              <motion.div 
-                initial={{ opacity: 0, x: -10 }} 
-                animate={{ opacity: 1, x: 0 }}
-                className={`flex items-center gap-2 text-sm font-medium ${message.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}
-              >
-                {message.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-                {message.text}
-              </motion.div>
-            )}
-          </div>
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-xl transition-all shadow-lg hover:shadow-blue-200 disabled:opacity-50"
+        <div className="flex flex-wrap items-center gap-3">
+          <button 
+            type="button" 
+            className="group flex items-center gap-2 bg-slate-100 hover:bg-white hover:ring-2 hover:ring-slate-200 text-slate-600 px-4 py-2.5 rounded-xl transition-all font-bold text-xs"
           >
-            {saving ? <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white"></div> : <Save className="w-5 h-5" />}
-            Simpan Perubahan
+            <HelpCircle className="w-4 h-4 text-slate-400 group-hover:text-blue-500" />
+            PETUNJUK SETTING
+          </button>
+          <button 
+            type="button" 
+            onClick={() => setPreviewType('skl')}
+            className="flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+          >
+            <Eye className="w-4 h-4" />
+            PRATINJAU SKL
+          </button>
+          <button 
+            type="button" 
+            onClick={() => setPreviewType('transcript')}
+            className="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+          >
+            <Printer className="w-4 h-4" />
+            PRATINJAU TRANSKRIP
           </button>
         </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-8 flex-1 pb-32">
+        {/* Template Selection Section */}
+        <section className="relative bg-slate-900 p-8 md:p-10 rounded-[2.5rem] text-white shadow-2xl overflow-hidden group">
+           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/20 blur-[80px] rounded-full -mr-20 -mt-20"></div>
+           
+           <AnimatePresence>
+             {isChangingTemplate && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 z-20 bg-slate-900/90 backdrop-blur-sm flex flex-col items-center justify-center gap-4"
+                >
+                  <RefreshCw className="w-10 h-10 text-blue-400 animate-spin" />
+                  <p className="text-sm font-black tracking-widest uppercase text-blue-200">Menerapkan Format Baru...</p>
+                </motion.div>
+             )}
+           </AnimatePresence>
+
+           <div className="flex flex-col md:flex-row gap-10 items-center relative z-10">
+              <div className="flex-1 space-y-3">
+                 <div className="inline-flex items-center gap-2 bg-blue-500/20 px-3 py-1 rounded-full border border-blue-400/30">
+                    <Layout className="w-3.5 h-3.5 text-blue-400" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-300">Konfigurasi Template</span>
+                 </div>
+                 <h3 className="text-3xl font-black tracking-tight leading-none">FORMAT DOKUMEN <span className="text-blue-400">SKL</span></h3>
+                 <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-md">Pilih struktur tampilan dokumen yang akan dicetak. Perubahan ini akan segera menyesuaikan tata letak SKL siswa secara otomatis.</p>
+              </div>
+              <div className="flex bg-white/5 p-2 rounded-[1.75rem] border border-white/10 shrink-0">
+                 <button
+                    type="button"
+                    onClick={() => handleTemplateChange('FORMAT_1')}
+                    className={`px-8 py-4 rounded-2xl font-black text-sm transition-all tracking-wider ${settings.sklFormat === 'FORMAT_1' ? 'bg-white text-slate-900 shadow-xl scale-105' : 'text-slate-400 hover:text-white'}`}
+                 >
+                    FORMAT 1
+                 </button>
+                 <button
+                    type="button"
+                    onClick={() => handleTemplateChange('FORMAT_2')}
+                    className={`px-8 py-4 rounded-2xl font-black text-sm transition-all tracking-wider ${settings.sklFormat === 'FORMAT_2' ? 'bg-white text-slate-900 shadow-xl scale-105' : 'text-slate-400 hover:text-white'}`}
+                 >
+                    FORMAT 2
+                 </button>
+              </div>
+           </div>
+        </section>
+
+        {/* Basic Settings Section */}
+        <section className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-slate-50 px-8 py-5 border-b border-slate-200 flex items-center gap-3">
+            <div className="bg-blue-100 p-2 rounded-xl">
+              <FileText className="w-5 h-5 text-blue-600" />
+            </div>
+            <h3 className="font-black text-slate-800 uppercase tracking-tight">Konfigurasi Konten SKL</h3>
+          </div>
+          <div className="p-8 space-y-6">
+             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
+                <label className="text-sm font-bold text-slate-700 capitalize">1. Tampilkan Kop Surat</label>
+                <div className="md:col-span-3 flex flex-col md:flex-row gap-4">
+                  <select
+                    className="flex-1 px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none"
+                    value={settings.sklShowHeader ? 'true' : 'false'}
+                    onChange={e => setSettings({...settings, sklShowHeader: e.target.value === 'true'})}
+                  >
+                    <option value="true">Tampilkan Logo & Kop Surat</option>
+                    <option value="false">Sembunyikan (Gunakan Kertas Kop)</option>
+                  </select>
+                  {!settings.sklShowHeader && (
+                    <div className="flex-1 flex items-center gap-3">
+                      <label className="text-xs font-bold text-slate-500 uppercase whitespace-nowrap">Margin Atas (CM)</label>
+                      <input
+                        type="number" step="0.1"
+                        className="w-24 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold outline-none"
+                        value={settings.sklHeaderMargin}
+                        onChange={e => setSettings({...settings, sklHeaderMargin: parseFloat(e.target.value)})}
+                      />
+                    </div>
+                  )}
+                </div>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
+                <label className="text-sm font-bold text-slate-700 capitalize">1. Logo Kop Surat</label>
+                <div className="md:col-span-3 flex items-center gap-4">
+                  <p className="text-sm font-bold text-slate-500 italic">Dikelola di Menu Identitas Sekolah</p>
+                  {settings.logoUrl && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
+                </div>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
+                <label className="text-sm font-bold text-slate-700">2. Judul Dokumen</label>
+                <input
+                  type="text"
+                  className="md:col-span-3 px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={settings.sklTitle}
+                  onChange={e => setSettings({...settings, sklTitle: e.target.value})}
+                />
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
+                <label className="text-sm font-bold text-slate-700">3. Template No. Surat</label>
+                <input
+                  type="text"
+                  className="md:col-span-3 px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={settings.letterNumberTemplate}
+                  onChange={e => setSettings({...settings, letterNumberTemplate: e.target.value})}
+                />
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
+                <label className="text-sm font-bold text-slate-700 pt-3">4. Pembuka (Isi Teks 1)</label>
+                <textarea
+                  rows={2}
+                  className="md:col-span-3 px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none leading-relaxed"
+                  value={settings.sklIsiTeks1}
+                  onChange={e => setSettings({...settings, sklIsiTeks1: e.target.value})}
+                />
+             </div>
+
+             <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 space-y-4">
+                <div className="flex items-center justify-between px-2 mb-2">
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Urutan Identitas Siswa</p>
+                   <span className="text-[10px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">Pilih Label Dropdown</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[1,2,3,4,5,6,7,8].map(i => (
+                    <div key={i} className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Baris Ke-{i}</label>
+                        <select
+                          className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
+                          value={(settings as any)[`sklIdentitas${i}`]}
+                          onChange={e => setSettings({...settings, [`sklIdentitas${i}`]: e.target.value})}
+                        >
+                          <option value="">(Kosongkan)</option>
+                          <option value="Nama Peserta Didik">Nama Peserta Didik</option>
+                          <option value="Tempat dan Tanggal Lahir">Tempat dan Tanggal Lahir</option>
+                          <option value="Jenis Kelamin">Jenis Kelamin</option>
+                          <option value="Nomor Induk Siswa">Nomor Induk Siswa</option>
+                          <option value="Nomor Induk Siswa Nasional">Nomor Induk Siswa Nasional</option>
+                          <option value="Nama Orang Tua">Nama Orang Tua</option>
+                          <option value="Kelas">Kelas</option>
+                          <option value="Peminatan / Jurusan">Peminatan / Jurusan</option>
+                          <option value="Agama">Agama</option>
+                        </select>
+                    </div>
+                  ))}
+                </div>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
+                <label className="text-sm font-bold text-slate-700 pt-3">13. Dasar Penilaian (Isi Teks 2)</label>
+                <textarea
+                  rows={4}
+                  className="md:col-span-3 px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none leading-relaxed"
+                  value={settings.sklIsiTeks2}
+                  onChange={e => setSettings({...settings, sklIsiTeks2: e.target.value})}
+                />
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
+                <label className="text-sm font-bold text-slate-700">14. Tampilkan Status Lulus</label>
+                <div className="md:col-span-3 flex flex-col md:flex-row gap-4">
+                  <select
+                    className="flex-1 px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none"
+                    value={settings.sklShowStatus ? 'true' : 'false'}
+                    onChange={e => setSettings({...settings, sklShowStatus: e.target.value === 'true'})}
+                  >
+                    <option value="true">Ya, Tampilkan Status Lulus</option>
+                    <option value="false">Tidak, Sembunyikan</option>
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Label Status (Contoh: Status Kelulusan)"
+                    className="flex-1 px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+                    value={settings.sklStatusKelulusanLabel}
+                    onChange={e => setSettings({...settings, sklStatusKelulusanLabel: e.target.value})}
+                  />
+                </div>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
+                <label className="text-sm font-bold text-slate-700 pt-3">15. Penyambung (Isi Teks 3)</label>
+                <textarea
+                  rows={2}
+                  className="md:col-span-3 px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none leading-relaxed"
+                  value={settings.sklIsiTeks3}
+                  onChange={e => setSettings({...settings, sklIsiTeks3: e.target.value})}
+                />
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-center pt-4 border-t border-slate-100">
+                <label className="text-sm font-bold text-slate-700">16. Konfigurasi Tabel Nilai</label>
+                <div className="md:col-span-3 flex flex-col md:flex-row gap-4">
+                  <select
+                    className="flex-1 px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none"
+                    value={settings.sklAdaTabelNilai ? 'true' : 'false'}
+                    onChange={e => setSettings({...settings, sklAdaTabelNilai: e.target.value === 'true'})}
+                  >
+                    <option value="true">Tampilkan Tabel Nilai</option>
+                    <option value="false">Sembunyikan Tabel Nilai</option>
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Judul Kolom Nilai..."
+                    className="flex-1 px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none italic"
+                    value={settings.sklJudulKolomNilai}
+                    onChange={e => setSettings({...settings, sklJudulKolomNilai: e.target.value})}
+                  />
+                </div>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
+                <label className="text-sm font-bold text-slate-700 pt-3">17. Penutup (Isi Teks 4)</label>
+                <textarea
+                  rows={3}
+                  className="md:col-span-3 px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none leading-relaxed"
+                  value={settings.sklIsiTeks4}
+                  onChange={e => setSettings({...settings, sklIsiTeks4: e.target.value})}
+                />
+             </div>
+          </div>
+        </section>
+
+        {/* Additional sections grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+           {/* Scoring Settings */}
+           <section className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden h-fit">
+              <div className="bg-slate-50 px-8 py-5 border-b border-slate-200 flex items-center gap-3">
+                 <div className="bg-emerald-100 p-2 rounded-xl">
+                    <Calculator className="w-5 h-5 text-emerald-600" />
+                 </div>
+                 <h3 className="font-black text-slate-800 uppercase tracking-tight">Tabel Transkrip Nilai</h3>
+              </div>
+              <div className="p-8 space-y-5">
+                 <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase">Jml Angka Desimal Nilai</label>
+                    <select
+                      className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none"
+                      value={settings.numDecimalNilai}
+                      onChange={e => setSettings({...settings, numDecimalNilai: parseInt(e.target.value)})}
+                    >
+                      <option value={2}>2 Desimal (Contoh : 60.01)</option>
+                      <option value={1}>1 Desimal (Contoh : 60.1)</option>
+                      <option value={0}>Tanpa Desimal (Bulat)</option>
+                    </select>
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase">Baris Rata-Rata Nilai</label>
+                    <select
+                      className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none"
+                      value={settings.showRataRata ? 'true' : 'false'}
+                      onChange={e => setSettings({...settings, showRataRata: e.target.value === 'true'})}
+                    >
+                      <option value="true">Tampilkan Baris Rata-Rata Nilai</option>
+                      <option value="false">Sembunyikan Baris Rata-Rata Nilai</option>
+                    </select>
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase">Jml Angka Desimal Rata-Rata</label>
+                    <select
+                      className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none"
+                      value={settings.numDecimalRataRata}
+                      onChange={e => setSettings({...settings, numDecimalRataRata: parseInt(e.target.value)})}
+                    >
+                      <option value={2}>2 Desimal (Contoh : 70.01)</option>
+                      <option value={1}>1 Desimal (Contoh : 70.1)</option>
+                    </select>
+                 </div>
+              </div>
+           </section>
+
+           {/* Signature Settings */}
+           <section className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden h-fit">
+              <div className="bg-slate-50 px-8 py-5 border-b border-slate-200 flex items-center gap-3">
+                 <div className="bg-rose-100 p-2 rounded-xl">
+                    <PenTool className="w-5 h-5 text-rose-600" />
+                 </div>
+                 <h3 className="font-black text-slate-800 uppercase tracking-tight">Setting Tampilan Tanda Tangan</h3>
+              </div>
+              <div className="p-8 space-y-5">
+                 <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase">18. Tempat dan Tanggal</label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Cianjur, 4 Mei 2026"
+                      className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none"
+                      value={settings.ttdTempatTanggal}
+                      onChange={e => setSettings({...settings, ttdTempatTanggal: e.target.value})}
+                    />
+                 </div>
+                 <div className="space-y-2 opacity-60">
+                    <label className="text-xs font-bold text-slate-500 uppercase">19. Penanggung Jawab (Dikelola di Menu Identitas)</label>
+                    <input
+                      type="text"
+                      disabled
+                      placeholder="Dikelola di Menu Identitas"
+                      className="w-full px-5 py-3 bg-slate-100 border border-slate-200 rounded-xl text-sm font-bold outline-none cursor-not-allowed"
+                      value={`${settings.ttdJabatan} - ${settings.headmasterName}`}
+                    />
+                 </div>
+                 <div className="hidden">
+                    <label className="text-xs font-bold text-slate-500 uppercase">20. Nama Lengkap</label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Dedi, S.Pd., Gr."
+                      className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none"
+                      value={settings.headmasterName}
+                      onChange={e => setSettings({...settings, headmasterName: e.target.value})}
+                    />
+                 </div>
+                 <div className="hidden">
+                    <label className="text-xs font-bold text-slate-500 uppercase">21. Identitas (NIP/NPA/NIY)</label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: NPA.32032416943"
+                      className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none"
+                      value={settings.headmasterNip}
+                      onChange={e => setSettings({...settings, headmasterNip: e.target.value})}
+                    />
+                 </div>
+                 <div className="flex flex-col md:flex-row gap-4">
+                    <div className="flex-1 space-y-2">
+                       <label className="text-xs font-bold text-slate-500 uppercase">20. Tampilkan Foto Siswa</label>
+                       <select
+                         className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none"
+                         value={settings.showFotoSiswa ? 'true' : 'false'}
+                         onChange={e => setSettings({...settings, showFotoSiswa: e.target.value === 'true'})}
+                       >
+                         <option value="false">Kosongkan Foto Siswa</option>
+                         <option value="true">Tampilkan Foto Siswa</option>
+                       </select>
+                    </div>
+                    <div className="flex-1 space-y-2">
+                       <label className="text-xs font-bold text-slate-500 uppercase">21. Tampilkan TTD/Cap Sekolah</label>
+                       <select
+                         className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none"
+                         value={settings.showTtdKepala ? 'true' : 'false'}
+                         onChange={e => setSettings({...settings, showTtdKepala: e.target.value === 'true'})}
+                       >
+                         <option value="false">Kosongkan TTD Kepala Sekolah</option>
+                         <option value="true">Tampilkan TTD Kepala Sekolah</option>
+                       </select>
+                    </div>
+                 </div>
+
+                 <div className="space-y-3 p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                    <div className="flex items-center justify-between">
+                       <label className="text-xs font-bold text-slate-500 uppercase">22. Posisi Foto (Merapat ke TTD)</label>
+                       <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-lg text-xs font-black">
+                         {settings.sklFotoSpacing || 0} CM
+                       </span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                       <input
+                         type="range"
+                         min="-5"
+                         max="10"
+                         step="0.1"
+                         className="flex-1 accent-indigo-600 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                         value={settings.sklFotoSpacing || 0}
+                         onChange={e => setSettings({...settings, sklFotoSpacing: parseFloat(e.target.value)})}
+                       />
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-bold italic uppercase tracking-wider">Gunakan nilai negatif untuk merapatkan/menimpakan foto ke area Cap.</p>
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-xs font-bold text-orange-600 uppercase">Tanda Tangan & Cap Sekolah</label>
+                    <p className="text-xs font-bold text-slate-500 italic bg-orange-50 p-3 rounded-xl border border-orange-100 uppercase tracking-widest">Aset TTD & Cap dikelola di Menu Identitas Sekolah</p>
+                 </div>
+              </div>
+           </section>
+        </div>
+
+        {/* Formatting Section */}
+        <section className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden h-fit">
+           <div className="bg-slate-50 px-8 py-5 border-b border-slate-200 flex items-center gap-3">
+              <div className="bg-indigo-100 p-2 rounded-xl">
+                 <Type className="w-5 h-5 text-indigo-600" />
+              </div>
+              <h3 className="font-black text-slate-800 uppercase tracking-tight">Setting Tampilan Cetak Nama Siswa</h3>
+           </div>
+           <div className="p-8 space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase">Tampilan Nama Siswa</label>
+                    <select
+                      className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none"
+                      value={settings.namaSiswaKapital ? 'true' : 'false'}
+                      onChange={e => setSettings({...settings, namaSiswaKapital: e.target.value === 'true'})}
+                    >
+                      <option value="true">Kapital Semua (Contoh : ARYA WIGUNA)</option>
+                      <option value="false">Kapital di Awal Kata (Contoh : Arya Wiguna)</option>
+                    </select>
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase">Tampilkan kolom identitas kurikulum</label>
+                    <select
+                      className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none"
+                      value={settings.showIdentitasKurikulum ? 'true' : 'false'}
+                      onChange={e => setSettings({...settings, showIdentitasKurikulum: e.target.value === 'true'})}
+                    >
+                      <option value="true">Tampilkan Identitas Kurikulum</option>
+                      <option value="false">Sembunyikan Identitas Kurikulum</option>
+                    </select>
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase">Tampilkan Peminatan (K13)</label>
+                    <select
+                      className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none"
+                      value={settings.showPeminatanSKL ? 'true' : 'false'}
+                      onChange={e => setSettings({...settings, showPeminatanSKL: e.target.value === 'true'})}
+                    >
+                      <option value="true">Tampilkan Peminatan</option>
+                      <option value="false">Sembunyikan Peminatan</option>
+                    </select>
+                 </div>
+              </div>
+           </div>
+        </section>
+
+        {/* Solid Static Footer for Save Button */}
+        <div className="fixed bottom-0 left-0 right-0 md:left-72 z-50 bg-white border-t border-slate-200 px-8 py-5 flex items-center justify-between shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+            <div className="hidden lg:block">
+            </div>
+            <div className="flex gap-3 w-full lg:w-auto">
+               <button
+                  type="button"
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                  className="flex-1 lg:flex-none border-2 border-slate-100 hover:bg-slate-50 text-slate-500 font-black py-4 px-10 rounded-2xl transition-all text-xs uppercase tracking-[0.15em]"
+               >
+                  KEMBALI KE ATAS
+               </button>
+               <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-[2] lg:flex-none flex items-center justify-center gap-3 bg-slate-900 hover:bg-black text-white font-black py-4 px-16 rounded-2xl transition-all shadow-xl disabled:opacity-50 text-xs uppercase tracking-[0.2em]"
+               >
+                  {saving ? <RefreshCw className="w-4 h-4 animate-spin text-white/50" /> : <Save className="w-4 h-4" />}
+                  SIMPAN SEMUA PENGATURAN
+               </button>
+            </div>
+        </div>
+
+        {/* Preview Modal Overlay */}
+        <AnimatePresence>
+          {previewType && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-lg flex items-center justify-center p-4 md:p-10"
+            >
+              <motion.div 
+                initial={{ scale: 0.95, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 20 }}
+                className="bg-white w-full max-w-5xl h-[90vh] rounded-[3rem] shadow-2xl flex flex-col overflow-hidden border border-white/20"
+              >
+                <div className="bg-slate-50 px-8 py-5 border-b border-slate-200 flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-100">
+                      <Layout className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-slate-800 uppercase tracking-tight">Pratinjau Dokumen</h4>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Contoh Tampilan Hasil Cetak</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setPreviewType(null)}
+                    className="p-3 bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-2xl transition-all shadow-sm border border-slate-100"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto p-10 bg-slate-100">
+                   <div className="bg-white shadow-2xl mx-auto w-full max-w-[210mm] min-h-[297mm] p-0 rounded-sm">
+                      {previewType === 'skl' ? (
+                        <SKLPreview student={mockStudent} isAdminView={true} />
+                      ) : (
+                        <TranscriptPreview student={mockStudent} />
+                      )}
+                   </div>
+                </div>
+
+                <div className="bg-white p-6 border-t border-slate-200 flex items-center justify-center gap-4 shrink-0">
+                   <div className="flex items-center gap-2 text-slate-400">
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span className="text-[10px] font-black uppercase tracking-widest italic">Live Preview Active</span>
+                   </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </form>
     </div>
   );

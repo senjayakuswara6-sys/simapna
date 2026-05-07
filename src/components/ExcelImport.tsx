@@ -25,12 +25,14 @@ export default function ExcelImport({ onClose }: { onClose: () => void }) {
     let headers: any[] = [
       {
         'Nama': 'CONTOH SISWA',
+        'NIS': '222310009',
+        'NISN': '0073231219',
+        'Jenis Kelamin': 'L',
         'Tempat Lahir': 'Cianjur',
         'Tanggal Lahir': '2007-05-28',
         'Nama Orang Tua': 'SAEPUL ROHMAN',
-        'NIS': '222310009',
-        'NISN': '0073231219',
-        'Kelas': 'XII-1',
+        'Kelas': 'XII MIPA 1',
+        'Peminatan': 'MIPA',
       }
     ];
 
@@ -68,7 +70,7 @@ export default function ExcelImport({ onClose }: { onClose: () => void }) {
         const data = XLSX.utils.sheet_to_json(ws) as any[];
 
         let count = 0;
-        const fixedKeys = ['Nama', 'Tempat Lahir', 'Tanggal Lahir', 'Nama Orang Tua', 'NIS', 'NISN', 'Kelas', 'Rata-rata Nilai Akhir', 'Status (LULUS/TIDAK LULUS)'];
+        const fixedKeys = ['Nama', 'Tempat Lahir', 'Tanggal Lahir', 'Nama Orang Tua', 'NIS', 'NISN', 'Kelas', 'Jenis Kelamin', 'Peminatan', 'Jurusan', 'Rata-rata Nilai Akhir', 'Status (LULUS/TIDAK LULUS)'];
 
         for (const row of data) {
           const subjects: StudentSubjectScore[] = [];
@@ -99,7 +101,13 @@ export default function ExcelImport({ onClose }: { onClose: () => void }) {
             parentName: (row['Nama Orang Tua'] || '').toString().trim(),
             nis: String(row['NIS'] || '').trim(),
             nisn: String(row['NISN'] || '').trim(),
+            gender: (() => {
+              const val = (row['Jenis Kelamin'] || 'L').toString().trim().toUpperCase();
+              if (val.startsWith('P')) return 'P';
+              return 'L';
+            })(),
             className: (row['Kelas'] || 'XII-1').toString().trim(),
+            peminatan: (row['Peminatan'] || row['Jurusan'] || '').toString().trim(),
             subjects,
             averageScore: parseFloat(averageScore.toFixed(2)),
             status: (row['Status (LULUS/TIDAK LULUS)'] || 'LULUS').toUpperCase() as any,

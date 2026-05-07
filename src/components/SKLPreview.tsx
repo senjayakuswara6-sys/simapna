@@ -14,11 +14,8 @@ interface SKLPreviewProps {
 
 export default function SKLPreview({ student, isAdminView = false, forcedShowStamp, forceShowHeader = false }: SKLPreviewProps) {
   const [settings, setSettings] = useState<SchoolSettings | null>(null);
-  const [localShowStamp, setLocalShowStamp] = useState(true);
   const [allSubjects, setAllSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const showStamp = forcedShowStamp !== undefined ? forcedShowStamp : localShowStamp;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -59,10 +56,11 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
   const format = settings.sklFormat || 'FORMAT_1';
 
   // Filter subjects for Format 2 based on student's class
-  const studentClass = student.className?.toUpperCase();
-  const relevantSubjects = allSubjects.filter(s => 
-    s.className === 'SEMUA' || s.className === studentClass
-  );
+  const relevantSubjects = allSubjects.filter(s => {
+    const studentCls = (student.className || '').trim().toUpperCase();
+    const subjectCls = (s.className || 'SEMUA').trim().toUpperCase();
+    return subjectCls === 'SEMUA' || subjectCls === studentCls;
+  });
 
   const subjectsByCategory = {
     UMUM: relevantSubjects.filter(s => s.category === 'UMUM'),
@@ -88,16 +86,18 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
       });
     }
 
-    return found ? found.score.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
+    const numDecimals = settings.numDecimalNilai ?? 2;
+    return found ? found.score.toLocaleString('id-ID', { minimumFractionDigits: numDecimals, maximumFractionDigits: numDecimals }) : '-';
   };
 
   const scale = (settings.printScale || 100) / 100;
-  const showHeader = format === 'FORMAT_1' || forceShowHeader;
+  const showHeader = settings.sklShowHeader !== false;
+  const showStamp = settings.showTtdKepala;
   
-  const effectiveTopMargin = (format === 'FORMAT_2' && !forceShowHeader) ? (settings.f4TopMargin || 5) : 0.5;
-  const effectiveBottomMargin = (format === 'FORMAT_2' && !forceShowHeader) ? (settings.f4BottomMargin || 1) : 1;
-  const effectiveLeftMargin = (format === 'FORMAT_2' && !forceShowHeader) ? (settings.f4LeftMargin || 1.5) : 1.2;
-  const effectiveRightMargin = (format === 'FORMAT_2' && !forceShowHeader) ? (settings.f4RightMargin || 1.5) : 1.2;
+  const effectiveTopMargin = !showHeader ? (settings.sklHeaderMargin || 5) : (settings.f4TopMargin || 0.5);
+  const effectiveBottomMargin = settings.f4BottomMargin || 1;
+  const effectiveLeftMargin = settings.f4LeftMargin || 1.5;
+  const effectiveRightMargin = settings.f4RightMargin || 1.5;
 
   const paperStyle = {
     paddingTop: `${effectiveTopMargin}cm`,
@@ -160,11 +160,11 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
             display: block !important;
             position: relative !important;
             margin: 0 auto !important;
-            break-after: page !important;
-            page-break-after: always !important;
             page-break-inside: avoid !important;
             width: ${format === 'FORMAT_2' ? '215mm' : '210mm'} !important;
-            height: ${format === 'FORMAT_2' ? '330mm' : '297mm'} !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: ${format === 'FORMAT_2' ? '329mm' : '296mm'} !important;
             padding-top: ${paperStyle.paddingTop} !important;
             padding-bottom: ${paperStyle.paddingBottom} !important;
             padding-left: ${paperStyle.paddingLeft} !important;
@@ -174,6 +174,7 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
             background: white !important;
             border: none !important;
             box-shadow: none !important;
+            overflow: hidden !important;
           }
 
           .print-hide {
@@ -211,31 +212,6 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
             <FileText className="w-4 h-4" />
             Mode Preview: {format.replace('_', ' ')}
           </div>
-          
-          <div className="bg-white border border-slate-200 rounded-full p-1.5 shadow-xl flex items-center gap-1">
-            <button
-              onClick={() => setLocalShowStamp(true)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black transition-all ${
-                showStamp 
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' 
-                : 'text-slate-500 hover:bg-slate-100'
-              }`}
-            >
-              <Check className="w-3 h-3" />
-              DENGAN CAP & TTD
-            </button>
-            <button
-              onClick={() => setLocalShowStamp(false)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black transition-all ${
-                !showStamp 
-                ? 'bg-orange-600 text-white shadow-lg shadow-orange-200' 
-                : 'text-slate-500 hover:bg-slate-100'
-              }`}
-            >
-              <X className="w-3 h-3" />
-              TANPA CAP & TTD
-            </button>
-          </div>
         </div>
       )}
 
@@ -262,68 +238,91 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
         )}
 
         {/* Title */}
-        <div className="text-center mb-6 space-y-0">
-          <h2 className="text-[13pt] font-bold underline uppercase tracking-tight leading-none m-0">Surat Keterangan Lulus</h2>
+        <div className="text-center mb-4 space-y-0">
+          <h2 className="text-[13pt] font-bold underline uppercase tracking-tight leading-none m-0">{settings.sklTitle || 'SURAT KETERANGAN LULUS'}</h2>
           <p className="font-bold text-[11pt] m-0 leading-none mt-1">Nomor : {student.sklNumber || settings.letterNumberTemplate}</p>
         </div>
 
         {/* Opening Info */}
         <div className="mb-2 text-justify" style={{ lineHeight: '1.2' }}>
-          <p>Kepala SMAS PGRI Naringgul, Tahun Pelajaran {settings.academicYear}, dengan berdasarkan:</p>
-          <ol className="list-decimal ml-8 mt-1 space-y-0 text-[10.5pt]">
-            <li>Penyelesaian seluruh program pembelajaran pada Kurikulum Merdeka;</li>
-            <li>Kriteria kelulusan dari satuan pendidikan sesuai dengan peraturan perundang-undangan;</li>
-            <li>Rapat Pleno Dewan Guru tentang Penetapan Kelulusan pada tanggal {formatDate(settings.plenaryDate)};</li>
-          </ol>
+          <p className="whitespace-pre-wrap">{settings.sklIsiTeks1}</p>
         </div>
 
-        <p className="mb-0 text-[10.5pt] font-medium">Menerangkan bahwa :</p>
+        <p className="mb-1 text-[10.5pt] font-medium">Menerangkan bahwa :</p>
 
         {/* Student Profile Info */}
         <div className="ml-8 space-y-0.5 mb-2 text-[10.5pt]">
-          <div className="grid grid-cols-[200px_10px_1fr] leading-tight">
-            <span>Nama</span><span>:</span><span className="font-bold uppercase tracking-tight">{student.name}</span>
+          {[1,2,3,4,5,6,7,8].map(i => {
+            const label = (settings as any)[`sklIdentitas${i}`];
+            if (!label) return null;
+
+            let value = '';
+            const lowLabel = label.toLowerCase();
+            
+            if (lowLabel.includes('kelamin')) value = student.gender === 'L' ? 'Laki-laki' : 'Perempuan';
+            else if (lowLabel.includes('nisn') || lowLabel.includes('nasional')) value = student.nisn;
+            else if (lowLabel.includes('nis') || lowLabel.includes('nomor induk')) value = student.nis;
+            else if (lowLabel.includes('nama') && lowLabel.includes('tua')) value = student.parentName;
+            else if (lowLabel.includes('nama')) value = student.name;
+            else if (lowLabel.includes('tempat') || lowLabel.includes('lahir')) value = `${student.birthPlace}, ${formatDate(student.birthDate)}`;
+            else if (lowLabel.includes('kelas')) value = student.className;
+            else if (lowLabel.includes('peminatan') || lowLabel.includes('jurusan')) {
+               if (settings.showPeminatanSKL === false) return null;
+               value = student.peminatan;
+            }
+            else if (lowLabel.includes('agama')) value = 'Islam'; 
+
+            return (
+              <div key={i} className="grid grid-cols-[200px_10px_1fr] leading-tight">
+                <span>{label}</span><span>:</span><span className={lowLabel.includes('nama') && !lowLabel.includes('tua') ? 'font-bold tracking-tight' : ''}>{value}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Basis Penilaian */}
+        <div className="mb-2 text-justify" style={{ lineHeight: '1.2' }}>
+          <p className="whitespace-pre-wrap">{settings.sklIsiTeks2}</p>
+        </div>
+
+        {(settings.sklShowStatus !== false) && (
+          <div className="mb-4 flex flex-col items-center">
+              <span className="font-black text-[14pt] tracking-[0.2em] border-2 border-black px-8 py-1 mt-1 uppercase">
+                {student.status === 'TIDAK LULUS' ? 'TIDAK LULUS' : 'L U L U S'}
+              </span>
           </div>
-          <div className="grid grid-cols-[200px_10px_1fr] leading-tight">
-            <span>Tempat dan Tanggal Lahir</span><span>:</span><span>{student.birthPlace}, {formatDate(student.birthDate)}</span>
-          </div>
-          <div className="grid grid-cols-[200px_10px_1fr] leading-tight">
-            <span>Nama Orang Tua</span><span>:</span><span>{student.parentName}</span>
-          </div>
-          <div className="grid grid-cols-[200px_10px_1fr] leading-tight">
-            <span>Nomor Induk Siswa</span><span>:</span><span>{student.nis}</span>
-          </div>
-          <div className="grid grid-cols-[200px_10px_1fr] leading-tight">
-            <span>Nomor Induk Siswa Nasional</span><span>:</span><span>{student.nisn}</span>
-          </div>
-          <div className="grid grid-cols-[200px_10px_1fr] items-center pt-1">
-            <span className="font-bold">Dinyatakan</span>
-            <span className="font-bold">:</span>
-            <span className="font-bold text-[11.5pt] tracking-[0.4em]">L U L U S</span>
-          </div>
+        )}
+
+        <div className="mb-2 text-justify" style={{ lineHeight: '1.2' }}>
+          <p className="whitespace-pre-wrap">{settings.sklIsiTeks3}</p>
         </div>
 
         {/* Format 2 Subjects Table */}
-        {format === 'FORMAT_2' ? (
-          <>
-            <p className="mb-0.5 text-[10pt]">Dengan nilai sebagai berikut :</p>
-            <table className="w-full border-collapse border border-black mb-1 text-[9.5pt] skl-table table-fixed">
+        {settings.sklAdaTabelNilai && (
+          <div className="mb-2">
+            <table className="w-full border-collapse border border-black text-[9pt] skl-table table-fixed">
               <thead className="bg-slate-50/10">
                 <tr className="h-[20px]">
                   <th className="border border-black px-1 py-0 w-[40px] text-center italic">No</th>
                   <th className="border border-black px-4 py-0 text-left">MATA PELAJARAN</th>
-                  <th className="border border-black px-1 py-0 w-[80px] text-center italic">Nilai</th>
+                  {settings.showIdentitasKurikulum && (
+                    <th className="border border-black px-1 py-0 w-[80px] text-center italic">Kurikulum</th>
+                  )}
+                  <th className="border border-black px-1 py-0 w-[80px] text-center italic">{settings.sklJudulKolomNilai || 'Nilai'}</th>
                 </tr>
               </thead>
               <tbody>
                 {/* Kelompok Umum */}
                 <tr className="h-[16px]">
-                  <td colSpan={3} className="border border-black px-2 py-0 font-bold text-[8.5pt] bg-slate-50/5 italic leading-none">Kelompok Mata Pelajaran Umum</td>
+                  <td colSpan={settings.showIdentitasKurikulum ? 4 : 3} className="border border-black px-2 py-0 font-bold text-[8.5pt] bg-slate-50/5 italic leading-none">Kelompok Mata Pelajaran Umum</td>
                 </tr>
                 {subjectsByCategory.UMUM.map((s, idx) => (
                   <tr key={s.id} className="h-[16px]">
                     <td className="border border-black px-1 py-0 text-center text-[9.5pt] leading-none">{idx + 1}</td>
                     <td className="border border-black px-2 py-0 text-[9.5pt] leading-none">{s.name}</td>
+                    {settings.showIdentitasKurikulum && (
+                      <td className="border border-black px-2 py-0 text-center text-[8pt] leading-none">{settings.academicYear ? 'Kurikulum Merdeka' : '-'}</td>
+                    )}
                     <td className="border border-black px-2 py-0 text-center tabular-nums text-[9.5pt] leading-none">{getScoreForSubject(s.name)}</td>
                   </tr>
                 ))}
@@ -332,12 +331,15 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
                 {subjectsByCategory.PILIHAN.length > 0 && (
                   <>
                     <tr className="h-[16px]">
-                      <td colSpan={3} className="border border-black px-2 py-0 font-bold text-[8.5pt] bg-slate-50/5 italic leading-none">Kelompok Mata Pelajaran Pilihan</td>
+                      <td colSpan={settings.showIdentitasKurikulum ? 4 : 3} className="border border-black px-2 py-0 font-bold text-[8.5pt] bg-slate-50/5 italic leading-none">Kelompok Mata Pelajaran Pilihan</td>
                     </tr>
                     {subjectsByCategory.PILIHAN.map((s, idx) => (
                       <tr key={s.id} className="h-[16px]">
                         <td className="border border-black px-1 py-0 text-center text-[9.5pt] leading-none">{subjectsByCategory.UMUM.length + idx + 1}</td>
                         <td className="border border-black px-2 py-0 text-[9.5pt] leading-none">{s.name}</td>
+                        {settings.showIdentitasKurikulum && (
+                          <td className="border border-black px-2 py-0 text-center text-[8pt] leading-none">{settings.academicYear ? 'Kurikulum Merdeka' : '-'}</td>
+                        )}
                         <td className="border border-black px-2 py-0 text-center tabular-nums text-[9.5pt] leading-none">{getScoreForSubject(s.name)}</td>
                       </tr>
                     ))}
@@ -348,12 +350,15 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
                 {subjectsByCategory.MULOK.length > 0 && (
                   <>
                     <tr className="h-[16px]">
-                      <td colSpan={3} className="border border-black px-2 py-0 font-bold text-[8.5pt] bg-slate-50/5 italic leading-none">Muatan Lokal</td>
+                      <td colSpan={settings.showIdentitasKurikulum ? 4 : 3} className="border border-black px-2 py-0 font-bold text-[8.5pt] bg-slate-50/5 italic leading-none">Muatan Lokal</td>
                     </tr>
                     {subjectsByCategory.MULOK.map((s, idx) => (
                       <tr key={s.id} className="h-[16px]">
                         <td className="border border-black px-1 py-0 text-center text-[9.5pt] leading-none">{subjectsByCategory.UMUM.length + subjectsByCategory.PILIHAN.length + idx + 1}</td>
                         <td className="border border-black px-2 py-0 text-[9.5pt] leading-none">{s.name}</td>
+                        {settings.showIdentitasKurikulum && (
+                          <td className="border border-black px-2 py-0 text-center text-[8pt] leading-none">{settings.academicYear ? 'Kurikulum Merdeka' : '-'}</td>
+                        )}
                         <td className="border border-black px-2 py-0 text-center tabular-nums text-[9.5pt] leading-none">{getScoreForSubject(s.name)}</td>
                       </tr>
                     ))}
@@ -361,55 +366,57 @@ export default function SKLPreview({ student, isAdminView = false, forcedShowSta
                 )}
 
                 {/* Total Average */}
-                <tr className="bg-slate-50/5 font-bold h-[20px]">
-                  <td colSpan={2} className="border border-black px-2 py-0 text-center tracking-[0.2em] italic uppercase text-[9pt]">Rata - rata</td>
-                  <td className="border border-black px-2 py-0 text-center tabular-nums text-[9.5pt]">{student.averageScore.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                </tr>
+                {settings.showRataRata && (
+                  <tr className="bg-slate-50/5 font-bold h-[20px]">
+                    <td colSpan={settings.showIdentitasKurikulum ? 3 : 2} className="border border-black px-2 py-0 text-center tracking-[0.2em] italic uppercase text-[9pt]">Rata - rata</td>
+                    <td className="border border-black px-2 py-0 text-center tabular-nums text-[9.5pt]">{student.averageScore.toLocaleString('id-ID', { minimumFractionDigits: settings.numDecimalRataRata || 2, maximumFractionDigits: settings.numDecimalRataRata || 2 })}</td>
+                  </tr>
+                )}
               </tbody>
             </table>
-          </>
-        ) : (
-          /* Format 1 Simple Info */
-          <>
-            <div className="mb-4">
-              <div className="grid grid-cols-[200px_10px_1fr]">
-                <span>Peminatan/Mapel Pilihan</span><span>:</span>
-                <div className="space-y-0">
-                  {student.subjects?.map((item, idx) => (
-                    <p key={idx}>{idx + 1}. {item.subjectName}</p>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="mb-6 font-bold">
-              <p>dengan Rata-rata Nilai*: {student.averageScore.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-            </div>
-          </>
-        )}
-
-        <div className="mb-2 italic text-[9pt] leading-tight">
-          <p>Surat Keterangan Lulus (SKL) ini diterbitkan pada tanggal {formatDate(settings.graduationDate)} dan bersifat sementara hingga murid menerima ijazah dan transkrip nilai.</p>
-        </div>
-
-        {/* Signature Section - PRESERVED AS PER USER REQUEST */}
-        <div className="flex justify-end mt-2 px-8">
-          <div className="w-[300px] text-center flex flex-col items-center relative">
-            <p className="mb-0 text-[10.5pt]">{settings.regency}, {formatDate(settings.graduationDate)}</p>
-            <p className="mb-14 leading-tight text-[10.5pt]">Kepala SMAS PGRI Naringgul,</p>
-            
-        {showStamp && settings.signatureStampUrl && (
-          <div className="absolute top-[20px] left-[10px] w-[180px] h-[100px] pointer-events-none z-10 transition-all opacity-80">
-            <img 
-              src={settings.signatureStampUrl} 
-              alt="Stamp" 
-              className="w-full h-full object-contain" 
-              referrerPolicy="no-referrer"
-            />
           </div>
         )}
 
+        <div className="mb-4 text-justify" style={{ lineHeight: '1.2' }}>
+          <p className="whitespace-pre-wrap">{settings.sklIsiTeks4}</p>
+        </div>
+
+        {/* Signature Section */}
+        <div className="flex justify-end mt-2 px-8">
+          {settings.showFotoSiswa && (
+            <div 
+              className="w-[120px] h-[150px] relative flex-shrink-0"
+              style={{ marginRight: `${settings.sklFotoSpacing ?? 3}cm`, zIndex: 1 }}
+            >
+              <div className="w-full h-full border border-black flex items-center justify-center text-[8pt] text-center p-2 bg-white/50">
+                {student.photoBase64 ? (
+                  <img src={student.photoBase64} alt="Foto Siswa" className="w-full h-full object-cover" />
+                ) : (
+                  <span>Pas Foto 3x4</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="w-[300px] text-center flex flex-col items-center relative flex-shrink-0">
+            <p className="mb-0 text-[10pt]">{settings.ttdTempatTanggal}</p>
+            <p className="mb-14 leading-tight text-[10pt]">{settings.ttdJabatan || 'Kepala Sekolah'},</p>
+            
+            {(showStamp && settings.signatureStampUrl && settings.showTtdKepala) ? (
+              <div className="absolute top-[20px] left-[10px] w-[200px] h-[120px] pointer-events-none z-10 transition-all">
+                <img 
+                  src={settings.signatureStampUrl} 
+                  alt="Stamp" 
+                  className="w-full h-full object-contain" 
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+            ) : (
+                <div className="h-14"></div>
+            )}
+
             <p className="font-bold underline text-[11pt] relative z-20 leading-none">{settings.headmasterName}</p>
-            <p className="text-[10pt] relative z-20 leading-none mt-1">{settings.headmasterIdType || 'NIP'}. {settings.headmasterNip}</p>
+            <p className="text-[10pt] relative z-20 leading-none mt-1">{settings.headmasterNip}</p>
           </div>
         </div>
 
